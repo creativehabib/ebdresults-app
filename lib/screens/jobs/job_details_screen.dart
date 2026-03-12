@@ -1,7 +1,6 @@
 import 'package:ebdresults/models/job_model.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class JobDetailsScreen extends StatelessWidget {
   final JobModel post;
@@ -23,14 +22,6 @@ class JobDetailsScreen extends StatelessWidget {
       return rawDate;
     }
     return DateFormat('dd MMM yyyy').format(parsedDate);
-  }
-
-  Future<void> _openSourceLink() async {
-    final uri = Uri.tryParse(post.link);
-    if (uri == null) {
-      return;
-    }
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   @override
@@ -69,14 +60,6 @@ class JobDetailsScreen extends StatelessWidget {
             description.isNotEmpty ? description : 'এই পোস্টের কোনো বর্ণনা পাওয়া যায়নি।',
             style: const TextStyle(fontSize: 15, height: 1.5),
           ),
-          if (post.link.isNotEmpty) ...[
-            const SizedBox(height: 18),
-            FilledButton.icon(
-              onPressed: _openSourceLink,
-              icon: const Icon(Icons.open_in_new),
-              label: const Text('মূল পোস্ট দেখুন'),
-            ),
-          ],
         ],
       ),
     );
