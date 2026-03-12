@@ -1,9 +1,9 @@
 import 'package:ebdresults/core/constants/api_urls.dart';
 import 'package:ebdresults/models/job_model.dart';
+import 'package:ebdresults/screens/jobs/job_details_screen.dart';
 import 'package:ebdresults/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class JobScreen extends StatefulWidget {
   const JobScreen({super.key});
@@ -43,7 +43,8 @@ class _JobScreenState extends State<JobScreen> {
     final filteredPosts = allPosts.where((post) {
       final categoryMatch = post.categoryIds.any(jobsCategoryIds.contains);
       final tagMatch = post.tagIds.any(jobsTagIds.contains);
-      final text = '${_normalize(post.title)} ${_normalize(post.excerpt)}';
+      final text =
+          '${_normalize(post.title)} ${_normalize(post.excerpt)} ${_normalize(post.content)}';
       final keywordMatch = _jobKeywords.any(text.contains);
       return categoryMatch || tagMatch || keywordMatch;
     }).toList();
@@ -52,29 +53,29 @@ class _JobScreenState extends State<JobScreen> {
   }
 
   Future<List<dynamic>> _fetchPostsFromSources() async {
-    final sources = [
-      '${ApiUrls.posts}?per_page=50',
-      '${ApiUrls.posts}?per_page=100',
-      ApiUrls.legacyJobs,
-      ApiUrls.legacyNews,
-    ];
+    final pageOne = await ApiService.fetchList('${ApiUrls.posts}?page=1');
+    final pageTwo = await ApiService.fetchList('${ApiUrls.posts}?page=2');
+    final legacyJobs = await ApiService.fetchList(ApiUrls.legacyJobs);
+    final legacyNews = await ApiService.fetchList(ApiUrls.legacyNews);
 
-    final merged = <dynamic>[];
-    for (final source in sources) {
-      final items = await ApiService.fetchList(source);
-      if (items.isNotEmpty) {
-        merged.addAll(items);
-      }
-    }
+    final merged = <dynamic>[]
+      ..addAll(pageOne)
+      ..addAll(pageTwo)
+      ..addAll(legacyJobs)
+      ..addAll(legacyNews);
 
     final uniqueByKey = <String, dynamic>{};
     for (final item in merged.whereType<Map<String, dynamic>>()) {
       final id = item['id']?.toString();
+      final slug = item['slug']?.toString() ?? '';
       final link = item['link']?.toString() ?? item['url']?.toString() ?? '';
-      final title = item['title']?.toString() ?? '';
       final key = (id != null && id.isNotEmpty)
           ? 'id:$id'
-          : (link.isNotEmpty ? 'link:$link' : 'title:$title');
+          : (slug.isNotEmpty
+                ? 'slug:$slug'
+                : (link.isNotEmpty
+                      ? 'link:$link'
+                      : 'title:${item['title'] ?? item['name'] ?? ''}'));
       uniqueByKey[key] = item;
     }
 
@@ -91,6 +92,7 @@ class _JobScreenState extends State<JobScreen> {
     'chakri',
     'career',
     'recruitment',
+    'govtjobs',
   ];
 
   Set<int> _collectTermIds(List<dynamic> terms) {
@@ -122,12 +124,74 @@ class _JobScreenState extends State<JobScreen> {
     return DateFormat('dd MMM yyyy').format(parsedDate);
   }
 
-  Future<void> _openPost(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri == null) {
-      return;
-    }
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  void _openJobDetails(JobModel job) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => JobDetailsScreen(post: job)),
+    );
+  }
+
+  Widget _buildGridCard(JobModel job) {
+    final previewText = _cleanHtml(job.excerpt.isNotEmpty ? job.excerpt : job.content);
+
+    return Card(
+      elevation: 1,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: () => _openJobDetails(job),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: SizedBox(
+                width: double.infinity,
+                child: job.imageUrl.isNotEmpty
+                    ? Image.network(
+                        job.imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: Colors.grey.shade200,
+                          alignment: Alignment.center,
+                          child: const Icon(Icons.image_not_supported),
+                        ),
+                      )
+                    : Container(
+                        color: Colors.grey.shade200,
+                        alignment: Alignment.center,
+                        child: const Icon(Icons.image, size: 32),
+                      ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
+              child: Text(
+                _cleanHtml(job.title),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Text(
+                _formatDate(job.date),
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 4, 10, 10),
+              child: Text(
+                previewText,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: Colors.grey.shade800, height: 1.3, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -163,24 +227,17 @@ class _JobScreenState extends State<JobScreen> {
                 _jobsFuture = Future.value(freshData);
               });
             },
-            child: ListView.separated(
+            child: GridView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(12),
               itemCount: jobs.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final job = jobs[index];
-                return ListTile(
-                  title: Text(_cleanHtml(job.title)),
-                  subtitle: Text(
-                    '${_formatDate(job.date)}\n${_cleanHtml(job.excerpt)}',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  isThreeLine: true,
-                  trailing: const Icon(Icons.open_in_new),
-                  onTap: () => _openPost(job.link),
-                );
-              },
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: MediaQuery.of(context).size.width > 700 ? 3 : 2,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 0.72,
+              ),
+              itemBuilder: (context, index) => _buildGridCard(jobs[index]),
             ),
           );
         },
