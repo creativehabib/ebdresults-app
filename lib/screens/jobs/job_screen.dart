@@ -1,9 +1,9 @@
 import 'package:ebdresults/core/constants/api_urls.dart';
 import 'package:ebdresults/models/job_model.dart';
+import 'package:ebdresults/screens/jobs/job_details_screen.dart';
 import 'package:ebdresults/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class JobScreen extends StatefulWidget {
   const JobScreen({super.key});
@@ -124,12 +124,74 @@ class _JobScreenState extends State<JobScreen> {
     return DateFormat('dd MMM yyyy').format(parsedDate);
   }
 
-  Future<void> _openPost(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri == null) {
-      return;
-    }
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  void _openJobDetails(JobModel job) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => JobDetailsScreen(post: job)),
+    );
+  }
+
+  Widget _buildGridCard(JobModel job) {
+    final previewText = _cleanHtml(job.excerpt.isNotEmpty ? job.excerpt : job.content);
+
+    return Card(
+      elevation: 1,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: () => _openJobDetails(job),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: SizedBox(
+                width: double.infinity,
+                child: job.imageUrl.isNotEmpty
+                    ? Image.network(
+                        job.imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: Colors.grey.shade200,
+                          alignment: Alignment.center,
+                          child: const Icon(Icons.image_not_supported),
+                        ),
+                      )
+                    : Container(
+                        color: Colors.grey.shade200,
+                        alignment: Alignment.center,
+                        child: const Icon(Icons.image, size: 32),
+                      ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
+              child: Text(
+                _cleanHtml(job.title),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Text(
+                _formatDate(job.date),
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 4, 10, 10),
+              child: Text(
+                previewText,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: Colors.grey.shade800, height: 1.3, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildBlogCard(JobModel job) {
@@ -217,10 +279,17 @@ class _JobScreenState extends State<JobScreen> {
                 _jobsFuture = Future.value(freshData);
               });
             },
-            child: ListView.builder(
+            child: GridView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(12),
               itemCount: jobs.length,
-              itemBuilder: (context, index) => _buildBlogCard(jobs[index]),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: MediaQuery.of(context).size.width > 700 ? 3 : 2,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 0.72,
+              ),
+              itemBuilder: (context, index) => _buildGridCard(jobs[index]),
             ),
           );
         },
