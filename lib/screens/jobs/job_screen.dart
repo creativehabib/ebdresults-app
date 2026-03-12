@@ -194,6 +194,58 @@ class _JobScreenState extends State<JobScreen> {
     );
   }
 
+  Widget _buildBlogCard(JobModel job) {
+    final previewText = _cleanHtml(job.excerpt.isNotEmpty ? job.excerpt : job.content);
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      elevation: 1,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: () => _openPost(job.link),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (job.imageUrl.isNotEmpty)
+              SizedBox(
+                width: double.infinity,
+                height: 180,
+                child: Image.network(
+                  job.imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+              child: Text(
+                _cleanHtml(job.title),
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text(
+                _formatDate(job.date),
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+              child: Text(
+                previewText,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: Colors.grey.shade800, height: 1.4),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
