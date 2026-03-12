@@ -1,9 +1,16 @@
 class ApiUrls {
+  static const token =
+      "SDafHV5s5Jiv0V7iMV2eGphWOeXDZ8iFJUhgmrY3BK787qMS0h0xKtJOsBHPa6KR";
 
-  static const base = "https://ebdresults.com/api";
+  static const base = 'https://ebdresults.com/api/v1';
+  static const legacyBase = 'https://ebdresults.com/api';
 
-  static const jobs = "$base/jobs";
-  static const news = "$base/news";
-  static const results = "$base/results";
+  static const posts = '$base/posts';
+  static const categories = '$base/categories';
+  static const tags = '$base/tags';
+  static const pages = '$base/pages';
+  static const comments = '$base/comments';
 
+  static const legacyJobs = '$legacyBase/jobs';
+  static const legacyNews = '$legacyBase/news';
 }

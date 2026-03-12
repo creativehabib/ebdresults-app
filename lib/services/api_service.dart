@@ -1,18 +1,72 @@
 import 'dart:convert';
+
+import 'package:ebdresults/core/constants/api_urls.dart';
 import 'package:http/http.dart' as http;
 
 class ApiService {
+  static Future<List<dynamic>> fetchList(String url) async {
+    final parsedUrl = Uri.parse(url);
 
-  static Future<List> fetchData(String url) async {
+    final urlsToTry = <Uri>[
+      parsedUrl.replace(
+        queryParameters: {
+          ...parsedUrl.queryParameters,
+          'token': ApiUrls.token,
+        },
+      ),
+      parsedUrl,
+    ];
 
-    final response = await http.get(Uri.parse(url));
+    for (final uri in urlsToTry) {
+      final response = await http.get(
+        uri,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer ${ApiUrls.token}',
+          'x-api-token': ApiUrls.token,
+        },
+      );
 
-    if(response.statusCode == 200){
-      return json.decode(response.body);
+      if (response.statusCode != 200) {
+        continue;
+      }
+
+      final body = json.decode(response.body);
+      final extracted = _extractList(body);
+      if (extracted.isNotEmpty) {
+        return extracted;
+      }
     }
 
     return [];
-
   }
 
+  static List<dynamic> _extractList(dynamic body) {
+    if (body is List) {
+      return body;
+    }
+
+    if (body is Map<String, dynamic>) {
+      final candidates = [
+        body['data'],
+        body['results'],
+        body['items'],
+        body['posts'],
+        body['categories'],
+        body['tags'],
+      ];
+
+      for (final candidate in candidates) {
+        if (candidate is List) {
+          return candidate;
+        }
+      }
+
+      if (body.isNotEmpty) {
+        return [body];
+      }
+    }
+
+    return [];
+  }
 }
