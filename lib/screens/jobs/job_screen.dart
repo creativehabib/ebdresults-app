@@ -43,7 +43,8 @@ class _JobScreenState extends State<JobScreen> {
     final filteredPosts = allPosts.where((post) {
       final categoryMatch = post.categoryIds.any(jobsCategoryIds.contains);
       final tagMatch = post.tagIds.any(jobsTagIds.contains);
-      final text = '${_normalize(post.title)} ${_normalize(post.excerpt)}';
+      final text =
+          '${_normalize(post.title)} ${_normalize(post.excerpt)} ${_normalize(post.content)}';
       final keywordMatch = _jobKeywords.any(text.contains);
       return categoryMatch || tagMatch || keywordMatch;
     }).toList();
@@ -52,29 +53,29 @@ class _JobScreenState extends State<JobScreen> {
   }
 
   Future<List<dynamic>> _fetchPostsFromSources() async {
-    final sources = [
-      '${ApiUrls.posts}?per_page=50',
-      '${ApiUrls.posts}?per_page=100',
-      ApiUrls.legacyJobs,
-      ApiUrls.legacyNews,
-    ];
+    final pageOne = await ApiService.fetchList('${ApiUrls.posts}?page=1');
+    final pageTwo = await ApiService.fetchList('${ApiUrls.posts}?page=2');
+    final legacyJobs = await ApiService.fetchList(ApiUrls.legacyJobs);
+    final legacyNews = await ApiService.fetchList(ApiUrls.legacyNews);
 
-    final merged = <dynamic>[];
-    for (final source in sources) {
-      final items = await ApiService.fetchList(source);
-      if (items.isNotEmpty) {
-        merged.addAll(items);
-      }
-    }
+    final merged = <dynamic>[]
+      ..addAll(pageOne)
+      ..addAll(pageTwo)
+      ..addAll(legacyJobs)
+      ..addAll(legacyNews);
 
     final uniqueByKey = <String, dynamic>{};
     for (final item in merged.whereType<Map<String, dynamic>>()) {
       final id = item['id']?.toString();
+      final slug = item['slug']?.toString() ?? '';
       final link = item['link']?.toString() ?? item['url']?.toString() ?? '';
-      final title = item['title']?.toString() ?? '';
       final key = (id != null && id.isNotEmpty)
           ? 'id:$id'
-          : (link.isNotEmpty ? 'link:$link' : 'title:$title');
+          : (slug.isNotEmpty
+                ? 'slug:$slug'
+                : (link.isNotEmpty
+                      ? 'link:$link'
+                      : 'title:${item['title'] ?? item['name'] ?? ''}'));
       uniqueByKey[key] = item;
     }
 
@@ -91,6 +92,7 @@ class _JobScreenState extends State<JobScreen> {
     'chakri',
     'career',
     'recruitment',
+    'govtjobs',
   ];
 
   Set<int> _collectTermIds(List<dynamic> terms) {
@@ -130,6 +132,58 @@ class _JobScreenState extends State<JobScreen> {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
+  Widget _buildBlogCard(JobModel job) {
+    final previewText = _cleanHtml(job.excerpt.isNotEmpty ? job.excerpt : job.content);
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      elevation: 1,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: () => _openPost(job.link),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (job.imageUrl.isNotEmpty)
+              SizedBox(
+                width: double.infinity,
+                height: 180,
+                child: Image.network(
+                  job.imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+              child: Text(
+                _cleanHtml(job.title),
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text(
+                _formatDate(job.date),
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+              child: Text(
+                previewText,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: Colors.grey.shade800, height: 1.4),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -163,24 +217,10 @@ class _JobScreenState extends State<JobScreen> {
                 _jobsFuture = Future.value(freshData);
               });
             },
-            child: ListView.separated(
+            child: ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
               itemCount: jobs.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final job = jobs[index];
-                return ListTile(
-                  title: Text(_cleanHtml(job.title)),
-                  subtitle: Text(
-                    '${_formatDate(job.date)}\n${_cleanHtml(job.excerpt)}',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  isThreeLine: true,
-                  trailing: const Icon(Icons.open_in_new),
-                  onTap: () => _openPost(job.link),
-                );
-              },
+              itemBuilder: (context, index) => _buildBlogCard(jobs[index]),
             ),
           );
         },
