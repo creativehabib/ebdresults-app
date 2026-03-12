@@ -22,7 +22,7 @@ class _JobScreenState extends State<JobScreen> {
   }
 
   Future<List<JobModel>> _fetchJobsNews() async {
-    final posts = await ApiService.fetchList('${ApiUrls.posts}?per_page=50');
+    final posts = await _fetchPostsFromSources();
     final categories = await ApiService.fetchList(ApiUrls.categories);
     final tags = await ApiService.fetchList(ApiUrls.tags);
 
@@ -32,8 +32,13 @@ class _JobScreenState extends State<JobScreen> {
     final allPosts = posts
         .whereType<Map<String, dynamic>>()
         .map(JobModel.fromJson)
+        .where((post) => post.title.trim().isNotEmpty)
         .toList()
       ..sort((a, b) => b.date.compareTo(a.date));
+
+    if (allPosts.isEmpty) {
+      return [];
+    }
 
     final filteredPosts = allPosts.where((post) {
       final categoryMatch = post.categoryIds.any(jobsCategoryIds.contains);
@@ -43,7 +48,37 @@ class _JobScreenState extends State<JobScreen> {
       return categoryMatch || tagMatch || keywordMatch;
     }).toList();
 
-    return filteredPosts.isNotEmpty ? filteredPosts : allPosts.take(20).toList();
+    return filteredPosts.isNotEmpty ? filteredPosts : allPosts.take(30).toList();
+  }
+
+  Future<List<dynamic>> _fetchPostsFromSources() async {
+    final sources = [
+      '${ApiUrls.posts}?per_page=50',
+      '${ApiUrls.posts}?per_page=100',
+      ApiUrls.legacyJobs,
+      ApiUrls.legacyNews,
+    ];
+
+    final merged = <dynamic>[];
+    for (final source in sources) {
+      final items = await ApiService.fetchList(source);
+      if (items.isNotEmpty) {
+        merged.addAll(items);
+      }
+    }
+
+    final uniqueByKey = <String, dynamic>{};
+    for (final item in merged.whereType<Map<String, dynamic>>()) {
+      final id = item['id']?.toString();
+      final link = item['link']?.toString() ?? item['url']?.toString() ?? '';
+      final title = item['title']?.toString() ?? '';
+      final key = (id != null && id.isNotEmpty)
+          ? 'id:$id'
+          : (link.isNotEmpty ? 'link:$link' : 'title:$title');
+      uniqueByKey[key] = item;
+    }
+
+    return uniqueByKey.values.toList();
   }
 
   static const List<String> _jobKeywords = [
@@ -55,6 +90,7 @@ class _JobScreenState extends State<JobScreen> {
     'circular',
     'chakri',
     'career',
+    'recruitment',
   ];
 
   Set<int> _collectTermIds(List<dynamic> terms) {
@@ -116,7 +152,7 @@ class _JobScreenState extends State<JobScreen> {
           final jobs = snapshot.data ?? [];
           if (jobs.isEmpty) {
             return const Center(
-              child: Text('Latest job circular পাওয়া যায়নি।'),
+              child: Text('Job Circular পাওয়া যায়নি। Pull down করে refresh দিন।'),
             );
           }
 
