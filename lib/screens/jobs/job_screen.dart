@@ -22,39 +22,51 @@ class _JobScreenState extends State<JobScreen> {
   }
 
   Future<List<JobModel>> _fetchJobsNews() async {
-    final posts = await ApiService.fetchList(ApiUrls.posts);
+    final posts = await ApiService.fetchList('${ApiUrls.posts}?per_page=50');
     final categories = await ApiService.fetchList(ApiUrls.categories);
     final tags = await ApiService.fetchList(ApiUrls.tags);
 
-    final jobsNewsCategoryIds = _collectTermIds(categories, 'jobs_news');
-    final jobsNewsTagIds = _collectTermIds(tags, 'jobs_news');
+    final jobsCategoryIds = _collectTermIds(categories);
+    final jobsTagIds = _collectTermIds(tags);
 
     final allPosts = posts
         .whereType<Map<String, dynamic>>()
         .map(JobModel.fromJson)
-        .toList();
+        .toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
 
-    return allPosts.where((post) {
-      final categoryMatch = post.categoryIds.any(jobsNewsCategoryIds.contains);
-      final tagMatch = post.tagIds.any(jobsNewsTagIds.contains);
-      final keywordMatch =
-          _normalize(post.title).contains('jobs_news') ||
-          _normalize(post.title).contains('job') ||
-          _normalize(post.excerpt).contains('jobs_news');
+    final filteredPosts = allPosts.where((post) {
+      final categoryMatch = post.categoryIds.any(jobsCategoryIds.contains);
+      final tagMatch = post.tagIds.any(jobsTagIds.contains);
+      final text = '${_normalize(post.title)} ${_normalize(post.excerpt)}';
+      final keywordMatch = _jobKeywords.any(text.contains);
       return categoryMatch || tagMatch || keywordMatch;
     }).toList();
+
+    return filteredPosts.isNotEmpty ? filteredPosts : allPosts.take(20).toList();
   }
 
-  Set<int> _collectTermIds(List<dynamic> terms, String keyword) {
+  static const List<String> _jobKeywords = [
+    'jobsnews',
+    'jobnews',
+    'jobcircular',
+    'jobscircular',
+    'job',
+    'circular',
+    'chakri',
+    'career',
+  ];
+
+  Set<int> _collectTermIds(List<dynamic> terms) {
     return terms.whereType<Map<String, dynamic>>().where((term) {
       final slug = _normalize(term['slug']);
       final name = _normalize(term['name']);
-      return slug.contains(_normalize(keyword)) || name.contains(_normalize(keyword));
+      return _jobKeywords.any((key) => slug.contains(key) || name.contains(key));
     }).map((term) => (term['id'] as num?)?.toInt() ?? 0).where((id) => id > 0).toSet();
   }
 
   String _normalize(dynamic value) {
-    return (value ?? '').toString().toLowerCase().replaceAll(' ', '_');
+    return (value ?? '').toString().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
   }
 
   String _cleanHtml(String rawText) {
@@ -62,6 +74,7 @@ class _JobScreenState extends State<JobScreen> {
         .replaceAll(RegExp(r'<[^>]*>'), ' ')
         .replaceAll('&nbsp;', ' ')
         .replaceAll('&amp;', '&')
+        .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
   }
 
@@ -85,7 +98,7 @@ class _JobScreenState extends State<JobScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Jobs News'),
+        title: const Text('Latest Job Circular'),
       ),
       body: FutureBuilder<List<JobModel>>(
         future: _jobsFuture,
@@ -96,14 +109,14 @@ class _JobScreenState extends State<JobScreen> {
 
           if (snapshot.hasError) {
             return const Center(
-              child: Text('Jobs news load করতে সমস্যা হয়েছে।'),
+              child: Text('Latest job circular load করতে সমস্যা হয়েছে।'),
             );
           }
 
           final jobs = snapshot.data ?? [];
           if (jobs.isEmpty) {
             return const Center(
-              child: Text('Jobs News পাওয়া যায়নি।'),
+              child: Text('Latest job circular পাওয়া যায়নি।'),
             );
           }
 

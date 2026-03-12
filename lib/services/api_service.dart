@@ -5,9 +5,10 @@ import 'package:http/http.dart' as http;
 
 class ApiService {
   static Future<List<dynamic>> fetchList(String url) async {
-    final uri = Uri.parse(url).replace(
+    final parsedUrl = Uri.parse(url);
+    final uri = parsedUrl.replace(
       queryParameters: {
-        ...Uri.parse(url).queryParameters,
+        ...parsedUrl.queryParameters,
         'token': ApiUrls.token,
       },
     );
@@ -21,10 +22,28 @@ class ApiService {
       },
     );
 
-    if (response.statusCode == 200) {
-      final body = json.decode(response.body);
-      if (body is List) {
-        return body;
+    if (response.statusCode != 200) {
+      return [];
+    }
+
+    final body = json.decode(response.body);
+
+    if (body is List) {
+      return body;
+    }
+
+    if (body is Map<String, dynamic>) {
+      final candidates = [
+        body['data'],
+        body['results'],
+        body['items'],
+        body['posts'],
+      ];
+
+      for (final candidate in candidates) {
+        if (candidate is List) {
+          return candidate;
+        }
       }
     }
 
