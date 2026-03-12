@@ -1,8 +1,8 @@
 import 'package:ebdresults/models/job_model.dart';
+import 'package:ebdresults/screens/jobs/job_details_screen.dart';
 import 'package:ebdresults/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/api_urls.dart';
 
@@ -69,12 +69,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return DateFormat('dd MMM yyyy').format(parsedDate);
   }
 
-  Future<void> _openPost(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri == null) {
-      return;
-    }
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  void _openPostDetails(JobModel post) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => JobDetailsScreen(post: post)),
+    );
   }
 
   Widget _sectionTitle(String title) {
@@ -92,8 +91,8 @@ class _HomeScreenState extends State<HomeScreen> {
       dense: true,
       title: Text(_cleanHtml(post.title), maxLines: 2, overflow: TextOverflow.ellipsis),
       subtitle: Text(_formatDate(post.date)),
-      trailing: const Icon(Icons.open_in_new, size: 18),
-      onTap: () => _openPost(post.link),
+      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+      onTap: () => _openPostDetails(post),
     );
   }
 
