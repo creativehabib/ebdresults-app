@@ -1,10 +1,10 @@
-import 'package:ebdresults/core/constants/api_urls.dart';
 import 'package:ebdresults/models/job_model.dart';
 import 'package:ebdresults/screens/jobs/job_details_screen.dart';
 import 'package:ebdresults/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
+
+import '../../core/constants/api_urls.dart';
 
 class JobScreen extends StatefulWidget {
   const JobScreen({super.key});
