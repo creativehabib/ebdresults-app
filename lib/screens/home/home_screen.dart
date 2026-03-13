@@ -15,11 +15,16 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late Future<List<JobModel>> _latestPostsFuture;
+  late Future<List<Map<String, dynamic>>> _categoriesFuture;
+  Future<List<JobModel>> _categoryPostsFuture = Future.value(const []);
+  int? _selectedCategoryId;
+  String _selectedCategoryName = '';
 
   @override
   void initState() {
     super.initState();
     _latestPostsFuture = _fetchLatestPosts();
+    _categoriesFuture = _fetchCategories();
   }
 
   Future<List<JobModel>> _fetchLatestPosts() async {
@@ -28,6 +33,30 @@ class _HomeScreenState extends State<HomeScreen> {
     return posts
         .whereType<Map<String, dynamic>>()
         .map(JobModel.fromJson)
+        .toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchCategories() async {
+    final categories = await ApiService.fetchList(ApiUrls.categories);
+    return categories.whereType<Map<String, dynamic>>().where((category) {
+      final id = (category['id'] as num?)?.toInt() ?? 0;
+      final name = (category['name'] ?? '').toString().trim();
+      return id > 0 && name.isNotEmpty;
+    }).map((category) {
+      return {
+        'id': (category['id'] as num).toInt(),
+        'name': (category['name'] ?? '').toString(),
+      };
+    }).toList();
+  }
+
+  Future<List<JobModel>> _fetchPostsByCategory(int categoryId) async {
+    final posts = await ApiService.fetchPostsByCategory(categoryId, perPage: 20);
+    return posts
+        .whereType<Map<String, dynamic>>()
+        .map(JobModel.fromJson)
+        .where((post) => post.title.trim().isNotEmpty)
         .toList()
       ..sort((a, b) => b.date.compareTo(a.date));
   }
@@ -96,6 +125,83 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildCategoriesSection() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _categoriesFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: LinearProgressIndicator(),
+          );
+        }
+
+        final categories = snapshot.data ?? [];
+        if (categories.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text('ক্যাটাগরি পাওয়া যায়নি।'),
+          );
+        }
+
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            children: categories.map((category) {
+              final id = category['id'] as int;
+              final name = category['name'] as String;
+              final isSelected = _selectedCategoryId == id;
+
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ChoiceChip(
+                  label: Text(name),
+                  selected: isSelected,
+                  onSelected: (_) {
+                    setState(() {
+                      _selectedCategoryId = id;
+                      _selectedCategoryName = name;
+                      _categoryPostsFuture = _fetchPostsByCategory(id);
+                    });
+                  },
+                ),
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSelectedCategoryPosts() {
+    if (_selectedCategoryId == null) {
+      return const SizedBox.shrink();
+    }
+
+    return FutureBuilder<List<JobModel>>(
+      future: _categoryPostsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final posts = snapshot.data ?? [];
+        if (posts.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text('এই ক্যাটাগরিতে কোন পোস্ট পাওয়া যায়নি।'),
+          );
+        }
+
+        return Column(children: posts.map(_buildPostTile).toList());
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -131,6 +237,12 @@ class _HomeScreenState extends State<HomeScreen> {
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               children: [
+                _sectionTitle('Categories'),
+                _buildCategoriesSection(),
+                if (_selectedCategoryId != null) ...[
+                  _sectionTitle('$_selectedCategoryName Posts'),
+                  _buildSelectedCategoryPosts(),
+                ],
                 _sectionTitle('Latest Job Circular'),
                 if (latestJobs.isEmpty)
                   const Padding(
