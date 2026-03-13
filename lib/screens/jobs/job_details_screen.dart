@@ -2,8 +2,8 @@ import 'package:ebdresults/models/job_model.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
-import 'package:ebdresults/screens/web_view_screen.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class JobDetailsScreen extends StatefulWidget {
   final JobModel post;
@@ -15,31 +15,18 @@ class JobDetailsScreen extends StatefulWidget {
 }
 
 class _JobDetailsScreenState extends State<JobDetailsScreen> {
-  // স্ক্রল ট্র্যাক করার জন্য কন্ট্রোলার
   late ScrollController _scrollController;
-  bool _isScrolled = false; // স্ক্রল হয়েছে কিনা তা চেক করার জন্য
+  bool _isScrolled = false;
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
-
-    // স্ক্রল লিসেনার অ্যাড করা হলো
     _scrollController.addListener(() {
-      // যদি স্ক্রল ২০ পিক্সেলের বেশি নিচে নামে
       if (_scrollController.offset > 20) {
-        if (!_isScrolled) {
-          setState(() {
-            _isScrolled = true;
-          });
-        }
+        if (!_isScrolled) setState(() => _isScrolled = true);
       } else {
-        // যদি আবার একদম উপরে চলে আসে
-        if (_isScrolled) {
-          setState(() {
-            _isScrolled = false;
-          });
-        }
+        if (_isScrolled) setState(() => _isScrolled = false);
       }
     });
   }
@@ -60,11 +47,65 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
 
   String _formatDate(String rawDate) {
     final parsedDate = DateTime.tryParse(rawDate);
-    if (parsedDate == null) {
-      return rawDate;
-    }
+    if (parsedDate == null) return rawDate;
     return DateFormat('dd MMM yyyy').format(parsedDate);
   }
+
+  // ================= লিংকে ক্লিক করলে ওপেন করার আল্টিমেট ও সিকিউর সল্যুশন =================
+  Future<void> _openLinkInternally(String link) async {
+    try {
+      // লিংকের আগে-পিছে কোনো স্পেস থাকলে তা রিমুভ করা এবং http কে https করা
+      String secureUrl = link.trim();
+      if (secureUrl.startsWith('http://')) {
+        secureUrl = secureUrl.replaceFirst('http://', 'https://');
+      }
+
+      final Uri? url = Uri.tryParse(secureUrl);
+      if (url == null) throw 'Invalid URL'; // লিংক ভুল থাকলে বাদ দিয়ে দেবে
+
+      final String urlLower = secureUrl.toLowerCase();
+
+      // চেক করা হচ্ছে এটি গুগল ড্রাইভ, ডকস বা কোনো শর্ট লিংক কিনা
+      final bool isDriveOrShortLink = urlLower.contains('drive.google.com') ||
+          urlLower.contains('docs.google.com') ||
+          urlLower.contains('forms.gle') ||
+          urlLower.contains('bit.ly') ||
+          urlLower.contains('cutt.ly') ||
+          urlLower.contains('tinyurl.com');
+
+      if (isDriveOrShortLink) {
+        // ড্রাইভ বা শর্ট লিংক হলে সরাসরি মেইন ব্রাউজারে (Chrome) ওপেন হবে
+        final bool launched = await launchUrl(url, mode: LaunchMode.externalApplication);
+        if (!launched && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('আপনার ফোনে ব্রাউজার বা ড্রাইভ অ্যাপ পাওয়া যাচ্ছে না')),
+          );
+        }
+      } else {
+        // সাধারণ ওয়েবসাইটের লিংক হলে অ্যাপের ভেতরে (In-App Browser) ওপেন হবে
+        bool launched = await launchUrl(url, mode: LaunchMode.inAppBrowserView);
+
+        // যদি ফোনে In-App Browser সাপোর্ট না করে, তাহলে মেইন ব্রাউজার ওপেন করবে
+        if (!launched) {
+          launched = await launchUrl(url, mode: LaunchMode.externalApplication);
+        }
+
+        if (!launched && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('লিংকটি কোনোভাবেই ওপেন করা যাচ্ছে না')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Launch Error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('লিংকটিতে কোনো সমস্যা আছে')),
+        );
+      }
+    }
+  }
+  // =====================================================================================
 
   @override
   Widget build(BuildContext context) {
@@ -73,16 +114,15 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-
-      // ================= আপডেট করা AppBar =================
       appBar: AppBar(
-        // স্ক্রল হলে ব্যাকগ্রাউন্ড কালার পরিবর্তন হবে
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
         backgroundColor: _isScrolled ? Colors.blue.shade50 : Colors.white,
-        // স্ক্রল হলে নিচে হালকা শ্যাডো দেখাবে
         elevation: _isScrolled ? 2 : 0,
         scrolledUnderElevation: 0,
         iconTheme: const IconThemeData(color: Colors.black87),
-        // সুন্দর অ্যানিমেশনের জন্য AnimatedContainer-এর মতো কাজ করবে AppBar ডিফল্টভাবেই
         actions: [
           IconButton(
             icon: const Icon(Icons.bookmark_border, color: Colors.black87),
@@ -106,10 +146,8 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
           ),
         ],
       ),
-      // ====================================================
-
       body: SingleChildScrollView(
-        controller: _scrollController, // কন্ট্রোলারটি এখানে যুক্ত করা হলো
+        controller: _scrollController,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -194,15 +232,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                 return null;
               },
               onTapUrl: (url) async {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => WebViewScreen(
-                      url: url,
-                      title: 'Link',
-                    ),
-                  ),
-                );
+                await _openLinkInternally(url);
                 return true;
               },
             ),
