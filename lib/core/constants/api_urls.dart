@@ -13,4 +13,13 @@ class ApiUrls {
 
   static const legacyJobs = '$legacyBase/jobs';
   static const legacyNews = '$legacyBase/news';
+
+  static String popularPosts({int perPage = 10}) =>
+      '$posts?per_page=$perPage&orderby=meta_value_num&meta_key=post_views_count&order=desc';
+
+  static String postsByCategory(int categoryId, {int perPage = 10}) =>
+      '$posts?categories=$categoryId&per_page=$perPage&order=desc';
+
+  static String lastModifiedPosts({int perPage = 10}) =>
+      '$posts?per_page=$perPage&orderby=modified&order=desc';
 }
