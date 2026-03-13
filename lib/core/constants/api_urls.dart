@@ -20,6 +20,9 @@ class ApiUrls {
   static String postsByCategory(int categoryId, {int perPage = 10}) =>
       '$posts?categories=$categoryId&per_page=$perPage&order=desc';
 
+  static String postsByCategoryQuery(int categoryId, {int perPage = 20, int page = 1}) =>
+      '$posts?category=$categoryId&per_page=$perPage&page=$page&order=desc';
+
   static String lastModifiedPosts({int perPage = 10}) =>
       '$posts?per_page=$perPage&orderby=modified&order=desc';
 }
