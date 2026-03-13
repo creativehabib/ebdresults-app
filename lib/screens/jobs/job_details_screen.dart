@@ -1,4 +1,5 @@
 import 'package:ebdresults/models/job_model.dart';
+import 'package:ebdresults/services/favorite_service.dart'; // ফেভারিট সার্ভিস ইমপোর্ট করা হয়েছে
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
@@ -18,9 +19,15 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
   late ScrollController _scrollController;
   bool _isScrolled = false;
 
+  // ================= ফেভারিটের জন্য নতুন ভেরিয়েবল =================
+  bool _isFavorite = false;
+  // ================================================================
+
   @override
   void initState() {
     super.initState();
+    _checkFavoriteStatus(); // শুরুতে ফেভারিট স্ট্যাটাস চেক করবে
+
     _scrollController = ScrollController();
     _scrollController.addListener(() {
       if (_scrollController.offset > 20) {
@@ -30,6 +37,15 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
       }
     });
   }
+
+  // ================= ফেভারিট স্ট্যাটাস চেক করার ফাংশন =================
+  Future<void> _checkFavoriteStatus() async {
+    final status = await FavoriteService.isFavorite(widget.post);
+    setState(() {
+      _isFavorite = status;
+    });
+  }
+  // ====================================================================
 
   @override
   void dispose() {
@@ -54,18 +70,16 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
   // ================= লিংকে ক্লিক করলে ওপেন করার আল্টিমেট ও সিকিউর সল্যুশন =================
   Future<void> _openLinkInternally(String link) async {
     try {
-      // লিংকের আগে-পিছে কোনো স্পেস থাকলে তা রিমুভ করা এবং http কে https করা
       String secureUrl = link.trim();
       if (secureUrl.startsWith('http://')) {
         secureUrl = secureUrl.replaceFirst('http://', 'https://');
       }
 
       final Uri? url = Uri.tryParse(secureUrl);
-      if (url == null) throw 'Invalid URL'; // লিংক ভুল থাকলে বাদ দিয়ে দেবে
+      if (url == null) throw 'Invalid URL';
 
       final String urlLower = secureUrl.toLowerCase();
 
-      // চেক করা হচ্ছে এটি গুগল ড্রাইভ, ডকস বা কোনো শর্ট লিংক কিনা
       final bool isDriveOrShortLink = urlLower.contains('drive.google.com') ||
           urlLower.contains('docs.google.com') ||
           urlLower.contains('forms.gle') ||
@@ -74,18 +88,15 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
           urlLower.contains('tinyurl.com');
 
       if (isDriveOrShortLink) {
-        // ড্রাইভ বা শর্ট লিংক হলে সরাসরি মেইন ব্রাউজারে (Chrome) ওপেন হবে
         final bool launched = await launchUrl(url, mode: LaunchMode.externalApplication);
         if (!launched && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('আপনার ফোনে ব্রাউজার বা ড্রাইভ অ্যাপ পাওয়া যাচ্ছে না')),
+            const SnackBar(content: Text('আপনার ফোনে ব্রাউজার বা ড্রাইভ অ্যাপ পাওয়া যাচ্ছে না')),
           );
         }
       } else {
-        // সাধারণ ওয়েবসাইটের লিংক হলে অ্যাপের ভেতরে (In-App Browser) ওপেন হবে
         bool launched = await launchUrl(url, mode: LaunchMode.inAppBrowserView);
 
-        // যদি ফোনে In-App Browser সাপোর্ট না করে, তাহলে মেইন ব্রাউজার ওপেন করবে
         if (!launched) {
           launched = await launchUrl(url, mode: LaunchMode.externalApplication);
         }
@@ -124,10 +135,27 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         scrolledUnderElevation: 0,
         iconTheme: const IconThemeData(color: Colors.black87),
         actions: [
+          // ================= ফেভারিট বাটন আপডেট করা হলো =================
           IconButton(
-            icon: const Icon(Icons.bookmark_border, color: Colors.black87),
-            onPressed: () {},
+            icon: Icon(
+              _isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: _isFavorite ? Colors.red : Colors.black87,
+            ),
+            onPressed: () async {
+              await FavoriteService.toggleFavorite(widget.post);
+              _checkFavoriteStatus(); // বাটনের রঙ পরিবর্তন করার জন্য স্ট্যাটাস আপডেট
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(_isFavorite ? 'ফেভারিট থেকে রিমুভ করা হয়েছে' : 'ফেভারিট এ সেভ করা হয়েছে!'),
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
+              }
+            },
           ),
+          // ================================================================
           IconButton(
             icon: const Icon(Icons.share_outlined, color: Colors.black87),
             onPressed: () async {

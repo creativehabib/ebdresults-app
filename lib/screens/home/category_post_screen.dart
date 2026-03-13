@@ -175,24 +175,8 @@ class _CategoryPostScreenState extends State<CategoryPostScreen> {
                       height: 1.3,
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xff546e7a),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      post.firstCategoryName.isNotEmpty
-                          ? post.firstCategoryName
-                          : widget.categoryName,
-                      style: const TextStyle(color: Colors.white, fontSize: 11),
-                    ),
-                  ),
                   const SizedBox(height: 12),
+                  // ================= এখান থেকে ক্যাটাগরি নাম দেখানোর কোড রিমুভ করা হয়েছে =================
                   Row(
                     children: [
                       const Icon(Icons.access_time, size: 14, color: Colors.grey),

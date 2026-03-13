@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/constants/api_urls.dart';
+import '../../widgets/app_drawer.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -343,10 +344,14 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: const Color(0xfff6f7f9),
 
+      drawer: const AppDrawer(),
+
       appBar: AppBar(
         backgroundColor: Colors.white,
-        elevation: 1, shadowColor: Colors.grey.withOpacity(0.3), surfaceTintColor: Colors.white, scrolledUnderElevation: 0,
-        leading: IconButton(icon: const Icon(Icons.menu, color: Colors.black87), onPressed: () {}),
+        elevation: 1,
+        shadowColor: Colors.grey.withOpacity(0.3),
+        surfaceTintColor: Colors.white,
+        scrolledUnderElevation: 0,
         title: RichText(
           text: const TextSpan(
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.black87),

@@ -10,7 +10,7 @@ class JobModel {
   final List<int> categoryIds;
   final List<int> tagIds;
 
-  // নতুন যোগ করা ভেরিয়েবল
+  // নতুন যোগ করা ভেরিয়েবল
   final String firstCategoryName;
   final String views;
 
@@ -28,6 +28,36 @@ class JobModel {
     required this.firstCategoryName,
     required this.views,
   });
+
+  // ================= নতুন যোগ করা toJson() মেথড =================
+  // লোকাল ডাটাবেসে সেভ করার জন্য এই মেথডটি প্রয়োজন
+  Map<String, dynamic> toJson() {
+    // API-এর মতো স্ট্রাকচার তৈরি করার জন্য ক্যাটাগরির লিস্ট বানানো হচ্ছে
+    List<Map<String, dynamic>> categoriesData = [];
+    if (categoryIds.isNotEmpty) {
+      categoriesData.add({'id': categoryIds.first, 'name': firstCategoryName});
+      for (int i = 1; i < categoryIds.length; i++) {
+        categoriesData.add({'id': categoryIds[i]});
+      }
+    } else {
+      categoriesData.add({'name': firstCategoryName});
+    }
+
+    return {
+      'id': id,
+      'title': title,
+      'excerpt': excerpt,
+      'content': content,
+      'date': date,
+      'link': link,
+      'image_url': imageUrl,
+      'slug': slug,
+      'categories': categoriesData,
+      'tags': tagIds,
+      'views': views,
+    };
+  }
+  // =============================================================
 
   factory JobModel.fromJson(Map<String, dynamic> json) {
     String pickText(dynamic value) {
