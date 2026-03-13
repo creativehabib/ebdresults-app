@@ -18,7 +18,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late Future<List<JobModel>> _latestPostsFuture;
-  late Future<List<JobModel>> _topStoriesFuture;
 
   // =================== ডায়নামিক ক্যাটাগরির ভেরিয়েবল ===================
   List<Map<String, dynamic>> _categories = [];
@@ -33,7 +32,6 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _fetchCategories(); // শুরুতে ক্যাটাগরি ফেচ হবে
     _latestPostsFuture = _fetchLatestPosts();
-    _topStoriesFuture = _fetchTopStories();
   }
 
   // =================== API থেকে ক্যাটাগরি ফেচ করার ফাংশন ===================
@@ -75,16 +73,6 @@ class _HomeScreenState extends State<HomeScreen> {
         .map(JobModel.fromJson)
         .toList()
       ..sort((a, b) => b.date.compareTo(a.date));
-  }
-
-  Future<List<JobModel>> _fetchTopStories() async {
-    final posts = await ApiService.fetchLastModifiedPosts(perPage: 3);
-
-    return posts
-        .whereType<Map<String, dynamic>>()
-        .map(JobModel.fromJson)
-        .take(3)
-        .toList();
   }
 
   String _cleanHtml(String rawText) {
@@ -164,12 +152,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
+                  // নিচের কালারড আন্ডারলাইন
                   if (isSelected)
                     Container(
                       height: 3,
                       width: 40,
                       decoration: const BoxDecoration(
-                        color: Color(0xff5c55a5),
+                        color: Color(0xff5c55a5), // ছবির পার্পল কালার
                         borderRadius: BorderRadius.vertical(top: Radius.circular(3)),
                       ),
                     )
@@ -183,7 +172,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
 
   // =================== Top Story ব্যানার (স্লাইডার) ===================
   Widget _buildTopStoryCard(JobModel post) {
@@ -465,36 +453,26 @@ class _HomeScreenState extends State<HomeScreen> {
           }
 
           final allPosts = snapshot.data ?? [];
-          final popularNews = allPosts.take(10).toList();
+          if (allPosts.isEmpty) {
+            return const Center(child: Text('কোন ডাটা পাওয়া যায়নি।'));
+          }
 
-          return FutureBuilder<List<JobModel>>(
-            future: _topStoriesFuture,
-            builder: (context, topStoriesSnapshot) {
-              if (topStoriesSnapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
+          final displayedPosts = allPosts;
 
-              if (topStoriesSnapshot.hasError) {
-                return const Center(child: Text('Top Story load করতে সমস্যা হয়েছে।'));
-              }
+          // প্রথম ৩টি পোস্টকে ব্যানার/Top Story হিসেবে ধরা হলো
+          final topStories = displayedPosts.take(3).toList();
+          // বাকিগুলো Popular News
+          final popularNews = displayedPosts.skip(3).take(10).toList();
 
-              final topStories = topStoriesSnapshot.data ?? [];
-
-              if (allPosts.isEmpty && topStories.isEmpty) {
-                return const Center(child: Text('কোন ডাটা পাওয়া যায়নি।'));
-              }
-
-              return RefreshIndicator(
-                onRefresh: () async {
-                  _fetchCategories(); // রিফ্রেশে ক্যাটাগরিও আপডেট হবে
-                  final freshData = await _fetchLatestPosts();
-                  final freshTopStories = await _fetchTopStories();
-                  setState(() {
-                    _latestPostsFuture = Future.value(freshData);
-                    _topStoriesFuture = Future.value(freshTopStories);
-                  });
-                },
-                child: SingleChildScrollView(
+          return RefreshIndicator(
+            onRefresh: () async {
+              _fetchCategories(); // রিফ্রেশে ক্যাটাগরিও আপডেট হবে
+              final freshData = await _fetchLatestPosts();
+              setState(() {
+                _latestPostsFuture = Future.value(freshData);
+              });
+            },
+            child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -503,7 +481,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 16),
 
-                  if (allPosts.isEmpty && topStories.isEmpty)
+                  // ক্যাটাগরি সিলেক্ট করার পর যদি কোন ডাটা না থাকে
+                  if (displayedPosts.isEmpty)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 40),
                       child: Center(child: Text('এই ক্যাটাগরিতে কোন ডাটা পাওয়া যায়নি।')),
@@ -575,8 +554,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-              );
-            },
           );
         },
       ),
