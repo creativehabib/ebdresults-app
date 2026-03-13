@@ -1,4 +1,5 @@
 import 'package:ebdresults/models/job_model.dart';
+import 'package:ebdresults/screens/home/category_post_screen.dart';
 import 'package:ebdresults/screens/jobs/job_details_screen.dart';
 // JobScreen ইমপোর্ট করা হলো
 import 'package:ebdresults/screens/jobs/job_screen.dart';
@@ -118,9 +119,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
           return GestureDetector(
             onTap: () {
+              final selectedId = category['id'] as int? ?? 0;
+
               setState(() {
-                _selectedCategoryId = category['id'];
+                _selectedCategoryId = selectedId;
               });
+
+              if (selectedId == 0) return;
+
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CategoryPostScreen(
+                    categoryId: selectedId,
+                    categoryName: category['name'].toString(),
+                  ),
+                ),
+              );
             },
             child: Container(
               margin: const EdgeInsets.only(left: 16, right: 8),
@@ -442,12 +457,7 @@ class _HomeScreenState extends State<HomeScreen> {
             return const Center(child: Text('কোন ডাটা পাওয়া যায়নি।'));
           }
 
-          // =================== ফিল্টারিং লজিক ===================
-          List<JobModel> displayedPosts = allPosts;
-          if (_selectedCategoryId != 0) {
-            displayedPosts = allPosts.where((post) => post.categoryIds.contains(_selectedCategoryId)).toList();
-          }
-          // ======================================================
+          final displayedPosts = allPosts;
 
           // প্রথম ৩টি পোস্টকে ব্যানার/Top Story হিসেবে ধরা হলো
           final topStories = displayedPosts.take(3).toList();
