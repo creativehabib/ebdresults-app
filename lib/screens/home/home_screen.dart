@@ -45,7 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
       for (var item in response) {
         if (item is Map<String, dynamic>) {
           fetchedCategories.add({
-            'id': int.tryParse(item['id'].toString()) ?? 0,
+            'id': item['id'],
             'name': _cleanHtml(item['name'] ?? item['title'] ?? 'Unknown'),
           });
         }
@@ -64,13 +64,8 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<List<JobModel>> _fetchLatestPosts({int? categoryId}) async {
-    final String url =
-        (categoryId == null || categoryId == 0)
-            ? '${ApiUrls.posts}?per_page=20'
-            : '${ApiUrls.posts}?per_page=20&categories=$categoryId';
-
-    final posts = await ApiService.fetchList(url);
+  Future<List<JobModel>> _fetchLatestPosts() async {
+    final posts = await ApiService.fetchList('${ApiUrls.posts}?per_page=20');
 
     return posts
         .whereType<Map<String, dynamic>>()
@@ -119,15 +114,12 @@ class _HomeScreenState extends State<HomeScreen> {
         itemCount: _categories.length,
         itemBuilder: (context, index) {
           final category = _categories[index];
-          final int categoryId = int.tryParse(category['id'].toString()) ?? 0;
-          final isSelected = _selectedCategoryId == categoryId;
+          final isSelected = _selectedCategoryId == category['id'];
 
           return GestureDetector(
             onTap: () {
               setState(() {
-                _selectedCategoryId = categoryId;
-                _currentBannerIndex = 0;
-                _latestPostsFuture = _fetchLatestPosts(categoryId: categoryId);
+                _selectedCategoryId = category['id'];
               });
             },
             child: Container(
@@ -450,8 +442,12 @@ class _HomeScreenState extends State<HomeScreen> {
             return const Center(child: Text('কোন ডাটা পাওয়া যায়নি।'));
           }
 
-          // category অনুযায়ী পোস্ট API থেকেই আনা হচ্ছে
-          final List<JobModel> displayedPosts = allPosts;
+          // =================== ফিল্টারিং লজিক ===================
+          List<JobModel> displayedPosts = allPosts;
+          if (_selectedCategoryId != 0) {
+            displayedPosts = allPosts.where((post) => post.categoryIds.contains(_selectedCategoryId)).toList();
+          }
+          // ======================================================
 
           // প্রথম ৩টি পোস্টকে ব্যানার/Top Story হিসেবে ধরা হলো
           final topStories = displayedPosts.take(3).toList();
@@ -461,7 +457,7 @@ class _HomeScreenState extends State<HomeScreen> {
           return RefreshIndicator(
             onRefresh: () async {
               _fetchCategories(); // রিফ্রেশে ক্যাটাগরিও আপডেট হবে
-              final freshData = await _fetchLatestPosts(categoryId: _selectedCategoryId);
+              final freshData = await _fetchLatestPosts();
               setState(() {
                 _latestPostsFuture = Future.value(freshData);
               });
