@@ -13,7 +13,6 @@ class BottomNav extends StatefulWidget {
 }
 
 class _BottomNavState extends State<BottomNav> {
-
   int index = 0;
 
   final screens = [
@@ -26,48 +25,52 @@ class _BottomNavState extends State<BottomNav> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-
-      body: screens[index],
-
+      body: IndexedStack( // IndexedStack ব্যবহার করলে স্ক্রিন চেঞ্জ হলেও ডাটা রিলোড হবে না
+        index: index,
+        children: screens,
+      ),
       bottomNavigationBar: BottomNavigationBar(
-
         currentIndex: index,
-
-        onTap: (i){
+        onTap: (i) {
           setState(() {
             index = i;
           });
         },
+        // স্টাইল এবং কালার কনফিগারেশন
+        type: BottomNavigationBarType.fixed, // ৫টি আইটেম থাকলে এটা অবশ্যই 'fixed' দিতে হবে
+        backgroundColor: Colors.white, // আপনার পছন্দমতো ব্যাকগ্রাউন্ড কালার দিন
+        selectedItemColor: Colors.blueAccent, // যেটা সিলেক্ট থাকবে সেটার কালার
+        unselectedItemColor: Colors.grey, // যেটা সিলেক্ট থাকবে না সেটার কালার
+        showUnselectedLabels: true, // আন-সিলেক্টেড লেখাগুলো দেখানোর জন্য
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+        unselectedLabelStyle: const TextStyle(fontSize: 12),
 
         items: const [
-
           BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: "Home"
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home), // সিলেক্ট হলে আইকন চেঞ্জ হবে
+            label: "Home",
           ),
-
           BottomNavigationBarItem(
-              icon: Icon(Icons.school),
-              label: "Results"
+            icon: Icon(Icons.school_outlined),
+            activeIcon: Icon(Icons.school),
+            label: "Results",
           ),
-
           BottomNavigationBarItem(
-              icon: Icon(Icons.work),
-              label: "Jobs"
+            icon: Icon(Icons.work_outline),
+            activeIcon: Icon(Icons.work),
+            label: "Jobs",
           ),
-
           BottomNavigationBarItem(
-              icon: Icon(Icons.menu_book),
-              label: "Study"
+            icon: Icon(Icons.menu_book_outlined),
+            activeIcon: Icon(Icons.menu_book),
+            label: "Study",
           ),
-
           BottomNavigationBarItem(
-              icon: Icon(Icons.more_horiz),
-              label: "More"
+            icon: Icon(Icons.more_horiz),
+            label: "More",
           ),
-
         ],
       ),
     );

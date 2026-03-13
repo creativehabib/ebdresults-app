@@ -10,6 +10,10 @@ class JobModel {
   final List<int> categoryIds;
   final List<int> tagIds;
 
+  // নতুন যোগ করা ভেরিয়েবল
+  final String firstCategoryName;
+  final String views;
+
   const JobModel({
     required this.id,
     required this.title,
@@ -21,6 +25,8 @@ class JobModel {
     required this.slug,
     required this.categoryIds,
     required this.tagIds,
+    required this.firstCategoryName,
+    required this.views,
   });
 
   factory JobModel.fromJson(Map<String, dynamic> json) {
@@ -37,11 +43,29 @@ class JobModel {
       return '';
     }
 
+    // আপডেট করা pickIntList: এটি এখন List of ID এবং List of Object দুটোই হ্যান্ডেল করতে পারবে
     List<int> pickIntList(dynamic value) {
       if (value is List) {
-        return value.whereType<num>().map((e) => e.toInt()).toList();
+        return value.map((e) {
+          if (e is num) return e.toInt();
+          if (e is Map<String, dynamic> && e['id'] != null) {
+            return int.tryParse(e['id'].toString()) ?? 0;
+          }
+          return 0;
+        }).where((id) => id > 0).toList();
       }
       return [];
+    }
+
+    // প্রথম ক্যাটাগরির নাম বের করার ফাংশন
+    String extractCategoryName(dynamic value) {
+      if (value is List && value.isNotEmpty) {
+        final firstItem = value.first;
+        if (firstItem is Map<String, dynamic> && firstItem['name'] != null) {
+          return firstItem['name'].toString();
+        }
+      }
+      return 'Update'; // যদি ক্যাটাগরি না থাকে তবে ডিফল্ট নাম
     }
 
     String pickImage(dynamic value) {
@@ -73,7 +97,7 @@ class JobModel {
       return '';
     }
 
-    final excerpt = pickText(json['excerpt']);
+    final excerpt = pickText(json['excerpt'] ?? json['description']);
     final content = pickText(json['content']);
 
     return JobModel(
@@ -91,6 +115,10 @@ class JobModel {
       slug: (json['slug'] ?? '').toString(),
       categoryIds: pickIntList(json['categories']),
       tagIds: pickIntList(json['tags']),
+
+      // নতুন ডেটাগুলো মডেলে পাস করা হলো
+      firstCategoryName: extractCategoryName(json['categories']),
+      views: (json['views'] ?? '0').toString(),
     );
   }
 }
