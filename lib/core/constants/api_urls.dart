@@ -10,6 +10,7 @@ class ApiUrls {
   static const tags = '$base/tags';
   static const pages = '$base/pages';
   static const comments = '$base/comments';
+  static const lastModifyPosts = '$base/last-modify-posts';
 
   static const legacyJobs = '$legacyBase/jobs';
   static const legacyNews = '$legacyBase/news';
@@ -21,5 +22,5 @@ class ApiUrls {
       '$posts?category=$categoryId&per_page=$perPage&page=$page&order=desc';
 
   static String lastModifiedPosts({int perPage = 10}) =>
-      '$posts?per_page=$perPage&orderby=modified&order=desc';
+      '$lastModifyPosts?per_page=$perPage';
 }
