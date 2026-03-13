@@ -20,17 +20,90 @@ class CategoryPostScreen extends StatefulWidget {
 }
 
 class _CategoryPostScreenState extends State<CategoryPostScreen> {
-  late Future<List<JobModel>> _postsFuture;
+  // =================== Pagination-এর জন্য প্রয়োজনীয় ভেরিয়েবল ===================
+  final ScrollController _scrollController = ScrollController();
+  List<JobModel> _posts = [];
+
+  bool _isLoadingInitial = true; // প্রথমবার লোড হওয়ার জন্য
+  bool _isLoadingMore = false; // নিচে স্ক্রল করে আরও ডাটা আনার জন্য
+  int _currentPage = 1;
+  bool _hasMoreData = true; // আর ডাটা আছে কিনা তা ট্র্যাক করার জন্য
+  // ============================================================================
 
   @override
   void initState() {
     super.initState();
-    _postsFuture = _fetchCategoryPosts();
+    _fetchInitialPosts();
+
+    // স্ক্রল লিসেনার সেট করা হলো
+    _scrollController.addListener(() {
+      // যদি ইউজার স্ক্রল করে একদম নিচে চলে আসে (200 পিক্সেল আগে থেকেই লোড শুরু হবে)
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+        if (!_isLoadingMore && _hasMoreData) {
+          _loadMorePosts();
+        }
+      }
+    });
   }
 
-  Future<List<JobModel>> _fetchCategoryPosts() async {
+  // প্রথমবার বা রিফ্রেশ করলে ডাটা আনার ফাংশন
+  Future<void> _fetchInitialPosts() async {
+    setState(() {
+      _isLoadingInitial = true;
+      _currentPage = 1;
+      _posts = [];
+      _hasMoreData = true;
+    });
+
+    try {
+      final List<JobModel> fetchedPosts = await _fetchPostsFromApi(1);
+
+      if (mounted) {
+        setState(() {
+          _posts = fetchedPosts;
+          _isLoadingInitial = false;
+          // যদি ২০ টার কম ডাটা আসে, তারমানে আর ডাটা নেই
+          if (fetchedPosts.length < 20) _hasMoreData = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingInitial = false);
+      }
+    }
+  }
+
+  // নিচে স্ক্রল করলে পরবর্তী পেজের ডাটা আনার ফাংশন
+  Future<void> _loadMorePosts() async {
+    setState(() => _isLoadingMore = true);
+    _currentPage++;
+
+    try {
+      final List<JobModel> newPosts = await _fetchPostsFromApi(_currentPage);
+
+      if (mounted) {
+        setState(() {
+          if (newPosts.isEmpty) {
+            _hasMoreData = false; // আর কোনো ডাটা নেই
+          } else {
+            _posts.addAll(newPosts); // পুরনো লিস্টের সাথে নতুন ডাটা যোগ হলো
+            if (newPosts.length < 20) _hasMoreData = false;
+          }
+          _isLoadingMore = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingMore = false);
+      }
+    }
+  }
+
+  // API থেকে ডাটা ফেচ করার মূল ফাংশন
+  Future<List<JobModel>> _fetchPostsFromApi(int page) async {
     final response = await ApiService.fetchList(
-      ApiUrls.postsByCategoryQuery(widget.categoryId),
+      // এখানে page প্যারামিটারটি পাস করা হলো
+      ApiUrls.postsByCategoryQuery(widget.categoryId, perPage: 20, page: page),
     );
 
     return response
@@ -38,6 +111,12 @@ class _CategoryPostScreenState extends State<CategoryPostScreen> {
         .map(JobModel.fromJson)
         .toList()
       ..sort((a, b) => b.date.compareTo(a.date));
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose(); // মেমোরি লিক রোধ করার জন্য ডিসপোজ
+    super.dispose();
   }
 
   String _cleanHtml(String rawText) {
@@ -135,15 +214,15 @@ class _CategoryPostScreenState extends State<CategoryPostScreen> {
                 height: 85,
                 child: post.imageUrl.isNotEmpty
                     ? Image.network(
-                        post.imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
-                            Container(color: Colors.grey.shade200),
-                      )
+                  post.imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      Container(color: Colors.grey.shade200),
+                )
                     : Container(
-                        color: Colors.grey.shade200,
-                        child: const Icon(Icons.image, color: Colors.grey),
-                      ),
+                  color: Colors.grey.shade200,
+                  child: const Icon(Icons.image, color: Colors.grey),
+                ),
               ),
             ),
           ],
@@ -165,42 +244,36 @@ class _CategoryPostScreenState extends State<CategoryPostScreen> {
         iconTheme: const IconThemeData(color: Colors.black87),
         surfaceTintColor: Colors.white,
       ),
-      body: FutureBuilder<List<JobModel>>(
-        future: _postsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return const Center(
-              child: Text('ডাটা লোড করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।'),
-            );
-          }
-
-          final posts = snapshot.data ?? [];
-          if (posts.isEmpty) {
-            return const Center(
-              child: Text('এই ক্যাটাগরিতে কোন পোস্ট পাওয়া যায়নি।'),
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: () async {
-              final freshData = await _fetchCategoryPosts();
-              if (!mounted) return;
-              setState(() {
-                _postsFuture = Future.value(freshData);
-              });
-            },
-            child: ListView.builder(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: posts.length,
-              itemBuilder: (context, index) => _buildListCard(posts[index]),
-            ),
-          );
-        },
+      body: RefreshIndicator(
+        onRefresh: _fetchInitialPosts, // রিফ্রেশ করলে আবার প্রথম থেকে ডাটা আসবে
+        child: _isLoadingInitial
+            ? const Center(child: CircularProgressIndicator())
+            : _posts.isEmpty
+            ? SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Container(
+            height: MediaQuery.of(context).size.height * 0.7,
+            alignment: Alignment.center,
+            child: const Text('এই ক্যাটাগরিতে কোন পোস্ট পাওয়া যায়নি।'),
+          ),
+        )
+            : ListView.builder(
+          controller: _scrollController, // স্ক্রল কন্ট্রোলার যুক্ত করা হলো
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          // আইটেম কাউন্ট ১ বেশি দেওয়া হয়েছে যাতে নিচে লোডিং ইন্ডিকেটর দেখানো যায়
+          itemCount: _posts.length + (_isLoadingMore ? 1 : 0),
+          itemBuilder: (context, index) {
+            // যদি লিস্টের একদম শেষ আইটেম হয় এবং লোডিং চলতে থাকে
+            if (index == _posts.length) {
+              return const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            return _buildListCard(_posts[index]);
+          },
+        ),
       ),
     );
   }
