@@ -45,13 +45,6 @@ class ApiService {
     return fetchList(ApiUrls.popularPosts(perPage: perPage));
   }
 
-  static Future<List<dynamic>> fetchPostsByCategory(
-    int categoryId, {
-    int perPage = 10,
-  }) {
-    return fetchList(ApiUrls.postsByCategory(categoryId, perPage: perPage));
-  }
-
   static Future<List<dynamic>> fetchLastModifiedPosts({int perPage = 10}) {
     return fetchList(ApiUrls.lastModifiedPosts(perPage: perPage));
   }

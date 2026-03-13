@@ -17,9 +17,6 @@ class ApiUrls {
   static String popularPosts({int perPage = 10}) =>
       '$posts?per_page=$perPage&orderby=meta_value_num&meta_key=post_views_count&order=desc';
 
-  static String postsByCategory(int categoryId, {int perPage = 10}) =>
-      '$posts?categories=$categoryId&per_page=$perPage&order=desc';
-
   static String postsByCategoryQuery(int categoryId, {int perPage = 20, int page = 1}) =>
       '$posts?category=$categoryId&per_page=$perPage&page=$page&order=desc';
 
