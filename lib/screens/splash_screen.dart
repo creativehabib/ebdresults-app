@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ebdresults/navigation/bottom_nav.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -13,8 +14,16 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // ৩ সেকেন্ড পর হোম স্ক্রিনে চলে যাবে
-    Timer(const Duration(seconds: 3), () {
+    _startTimer();
+  }
+
+  void _startTimer() {
+    Timer(const Duration(seconds: 3), () async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('is_first_time', false);
+
+      if (!mounted) return;
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const BottomNav()),
@@ -28,7 +37,6 @@ class _SplashScreenState extends State<SplashScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      // ব্যাকগ্রাউন্ড থিম অনুযায়ী হবে
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         fit: StackFit.expand,
@@ -37,7 +45,6 @@ class _SplashScreenState extends State<SplashScreen> {
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // লোগো বক্স
               Container(
                 height: 100,
                 width: 100,
@@ -64,7 +71,6 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              // অ্যাপের নাম
               RichText(
                 text: TextSpan(
                   style: TextStyle(
