@@ -111,22 +111,30 @@ class _CategoryPostScreenState extends State<CategoryPostScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      // backgroundColor এখন থিম থেকে অটোমেটিক নেবে
       appBar: AppBar(
         title: Text(
           widget.categoryName,
-          style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          // টেক্সট কালার ডার্ক মোডে সাদা এবং লাইট মোডে কালো দেখাবে
+          style: TextStyle(
+              color: isDark ? Colors.white : Colors.black87,
+              fontWeight: FontWeight.bold
+          ),
         ),
-        backgroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: Colors.black87),
-        surfaceTintColor: Colors.white,
-        elevation: 1,
-        shadowColor: Colors.black12,
+        // অ্যাপবারের ব্যাকগ্রাউন্ড থিমের সেটিং অনুযায়ী অ্যাডজাস্ট হবে
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black87),
+        surfaceTintColor: theme.appBarTheme.surfaceTintColor,
+        elevation: isDark ? 0 : 1,
+        shadowColor: Colors.black26,
       ),
       body: RefreshIndicator(
         onRefresh: _fetchInitialPosts,
-        color: Colors.black87,
+        color: theme.primaryColor,
         child: _isLoadingInitial
             ? const Center(child: CircularProgressIndicator())
             : _posts.isEmpty
@@ -135,7 +143,10 @@ class _CategoryPostScreenState extends State<CategoryPostScreen> {
           child: Container(
             height: MediaQuery.of(context).size.height * 0.7,
             alignment: Alignment.center,
-            child: const Text('এই ক্যাটাগরিতে কোন পোস্ট পাওয়া যায়নি।'),
+            child: Text(
+              'এই ক্যাটাগরিতে কোন পোস্ট পাওয়া যায়নি।',
+              style: TextStyle(color: isDark ? Colors.white60 : Colors.black54),
+            ),
           ),
         )
             : ListView.builder(
@@ -145,19 +156,18 @@ class _CategoryPostScreenState extends State<CategoryPostScreen> {
           itemCount: _posts.length + (_isLoadingMore ? 1 : 0),
           itemBuilder: (context, index) {
             if (index == _posts.length) {
-              return const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Center(child: CircularProgressIndicator()),
+              return Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Center(
+                  child: CircularProgressIndicator(color: theme.primaryColor),
+                ),
               );
             }
 
-            // =================  PostCard  =================
             return PostCard(
               post: _posts[index],
               fallbackCategoryName: widget.categoryName,
             );
-            // =========================================================================
-
           },
         ),
       ),

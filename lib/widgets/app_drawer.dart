@@ -10,16 +10,21 @@ class AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Drawer(
-      backgroundColor: Colors.white,
+      // ড্রয়ারের ব্যাকগ্রাউন্ড এখন থিম থেকে নেবে
+      backgroundColor: theme.scaffoldBackgroundColor,
       child: Column(
         children: [
           // ================= ড্রয়ার হেডার =================
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.only(top: 60, bottom: 20, left: 20, right: 20),
-            decoration: const BoxDecoration(
-              color: Color(0xffef9829), // আপনার অ্যাপের প্রাইমারি কালার
+            padding: const EdgeInsets.only(top: 60, bottom: 25, left: 20, right: 20),
+            decoration: BoxDecoration(
+              // হেডারে প্রাইমারি কালার ব্যবহার করা হলো
+              color: theme.primaryColor,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -30,18 +35,22 @@ class AppDrawer extends StatelessWidget {
                   width: 60,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(15),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5)),
+                      BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5)
+                      ),
                     ],
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Text(
                       'JOB',
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
                         fontSize: 18,
-                        color: Color(0xff5c55a5),
+                        color: theme.primaryColor,
                       ),
                     ),
                   ),
@@ -52,9 +61,9 @@ class AppDrawer extends StatelessWidget {
                   style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
-                const Text(
+                Text(
                   'Find your dream job easily',
-                  style: TextStyle(color: Colors.white70, fontSize: 13),
+                  style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13),
                 ),
               ],
             ),
@@ -66,15 +75,14 @@ class AppDrawer extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 10),
               children: [
                 _buildDrawerItem(
+                  context: context,
                   icon: Icons.home_outlined,
                   title: 'Home',
-                  onTap: () {
-                    Navigator.pop(context);
-                  },
+                  onTap: () => Navigator.pop(context),
                 ),
 
-                // ================= Category menu =================
                 _buildDrawerItem(
+                  context: context,
                   icon: Icons.category_outlined,
                   title: 'Job Categories',
                   onTap: () {
@@ -87,6 +95,7 @@ class AppDrawer extends StatelessWidget {
                 ),
 
                 _buildDrawerItem(
+                  context: context,
                   icon: Icons.favorite_border,
                   title: 'Favorite Jobs',
                   onTap: () {
@@ -98,12 +107,13 @@ class AppDrawer extends StatelessWidget {
                   },
                 ),
 
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Divider(color: Colors.black12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: Divider(color: isDark ? Colors.white10 : Colors.black12),
                 ),
 
                 _buildDrawerItem(
+                  context: context,
                   icon: Icons.settings_outlined,
                   title: 'Settings',
                   onTap: () {
@@ -115,6 +125,7 @@ class AppDrawer extends StatelessWidget {
                   },
                 ),
                 _buildDrawerItem(
+                  context: context,
                   icon: Icons.info_outline,
                   title: 'About Us',
                   onTap: () {
@@ -126,13 +137,13 @@ class AppDrawer extends StatelessWidget {
                   },
                 ),
                 _buildDrawerItem(
+                  context: context,
                   icon: Icons.share_outlined,
                   title: 'Share App',
                   onTap: () async {
                     Navigator.pop(context);
-                    // শেয়ার করার লজিক
-                    final String shareText = 'সবচেয়ে দ্রুত আপডেট চাকরির খবর পেতে ডাউনলোড করুন আমাদের অ্যাপ:\nhttps://play.google.com/store/apps/details?id=com.your.app.id'; // এখানে আপনার আসল প্লে স্টোর লিংক দেবেন
-                    await Share.share(shareText, subject: 'Job News Portal App');
+                    final String shareText = 'সবচেয়ে দ্রুত চাকরির আপডেট পেতে অ্যাপটি ডাউনলোড করুন:\nhttps://play.google.com/store/apps/details?id=com.ebdresults.app';
+                    await Share.share(shareText, subject: 'Job News Portal');
                   },
                 ),
               ],
@@ -140,11 +151,14 @@ class AppDrawer extends StatelessWidget {
           ),
 
           // ================= ড্রয়ার ফুটার =================
-          const Padding(
-            padding: EdgeInsets.all(16.0),
+          Padding(
+            padding: const EdgeInsets.all(20.0),
             child: Text(
               'Version 1.0.0',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
+              style: TextStyle(
+                  color: isDark ? Colors.white24 : Colors.grey,
+                  fontSize: 12
+              ),
             ),
           ),
         ],
@@ -152,13 +166,27 @@ class AppDrawer extends StatelessWidget {
     );
   }
 
-  // মেনু আইটেম বানানোর জন্য একটি ছোট ফাংশন
-  Widget _buildDrawerItem({required IconData icon, required String title, required VoidCallback onTap}) {
+  // মেনু আইটেম বিল্ডার যা থিম সাপোর্ট করবে
+  Widget _buildDrawerItem({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return ListTile(
-      leading: Icon(icon, color: Colors.grey.shade700),
+      leading: Icon(
+          icon,
+          color: isDark ? Colors.white70 : Colors.grey.shade700
+      ),
       title: Text(
         title,
-        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
+        style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.white : Colors.black87
+        ),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 24),
       onTap: onTap,

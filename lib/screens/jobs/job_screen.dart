@@ -99,16 +99,20 @@ class _JobScreenState extends State<JobScreen> {
         .toList();
   }
 
-  Widget _buildSearchBar() {
+  // সার্চ বার থিম অনুযায়ী আপডেট করা হয়েছে
+  Widget _buildSearchBar(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          // থিমের কার্ড কালার ব্যবহার করা হয়েছে
+          color: Theme.of(context).cardTheme.color,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04), // একদম হালকা শ্যাডো
+              color: isDark ? Colors.black26 : Colors.black.withOpacity(0.04),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -123,11 +127,11 @@ class _JobScreenState extends State<JobScreen> {
           },
           decoration: InputDecoration(
             hintText: 'সার্কুলার বা ক্যাটাগরি খুঁজুন...',
-            hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-            prefixIcon: const Icon(Icons.search, color: Color(0xff5c55a5)),
+            hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade400, fontSize: 14),
+            prefixIcon: Icon(Icons.search, color: Theme.of(context).primaryColor),
             suffixIcon: _searchQuery.isNotEmpty
                 ? IconButton(
-              icon: const Icon(Icons.clear, color: Colors.grey, size: 20),
+              icon: Icon(Icons.clear, color: isDark ? Colors.white38 : Colors.grey, size: 20),
               onPressed: () {
                 _searchController.clear();
                 setState(() {
@@ -147,6 +151,9 @@ class _JobScreenState extends State<JobScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     final List<JobModel> displayedJobs = _searchQuery.isEmpty
         ? _allJobs
         : _allJobs.where((job) {
@@ -157,30 +164,27 @@ class _JobScreenState extends State<JobScreen> {
     }).toList();
 
     return Scaffold(
-      backgroundColor: Colors.white,
-
+      // backgroundColor এখন অটোমেটিক থিম থেকে নেবে
       drawer: const AppDrawer(),
 
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 1,
-        shadowColor: Colors.black26,
-        surfaceTintColor: Colors.white,
-        scrolledUnderElevation: 0,
-        centerTitle: true,
+        // অ্যাপবার থিম অনুযায়ী অটো অ্যাডজাস্ট হবে
         title: RichText(
-          text: const TextSpan(
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.black87),
-            children: [
+          text: TextSpan(
+            style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                color: isDark ? Colors.white : Colors.black87
+            ),
+            children: const [
               TextSpan(text: 'Latest '),
               TextSpan(text: 'NEWS', style: TextStyle(color: Color(0xffff8f00))),
             ],
           ),
         ),
-        iconTheme: const IconThemeData(color: Colors.black87),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_none_rounded, color: Colors.black87),
+            icon: const Icon(Icons.notifications_none_rounded),
             onPressed: () {},
           ),
         ],
@@ -194,19 +198,19 @@ class _JobScreenState extends State<JobScreen> {
           });
           await _fetchInitialJobs();
         },
-        color: const Color(0xff5c55a5),
+        color: theme.primaryColor,
         child: _isLoadingInitial
             ? const Center(child: CircularProgressIndicator())
             : Column(
           children: [
-            _buildSearchBar(),
+            _buildSearchBar(context),
             const SizedBox(height: 8),
             Expanded(
               child: displayedJobs.isEmpty
                   ? Center(
                 child: Text(
                   _searchQuery.isNotEmpty ? 'কোন ফলাফল পাওয়া যায়নি!' : 'কোন তথ্য পাওয়া যায়নি',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                  style: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade600, fontSize: 16),
                 ),
               )
                   : ListView.builder(
@@ -223,9 +227,9 @@ class _JobScreenState extends State<JobScreen> {
               ),
             ),
             if (_isLoadingMore && _searchQuery.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: CircularProgressIndicator(),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: CircularProgressIndicator(color: theme.primaryColor),
               ),
           ],
         ),

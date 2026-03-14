@@ -22,65 +22,92 @@ class _FavoriteJobsScreenState extends State<FavoriteJobsScreen> {
 
   Future<void> _loadFavorites() async {
     final jobs = await FavoriteService.getFavoriteJobs();
-    setState(() {
-      _favoriteJobs = jobs;
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _favoriteJobs = jobs;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.white, // PostCard এর সাথে ম্যাচ করার জন্য ব্যাকগ্রাউন্ড সাদা করা হলো
+      // backgroundColor এখন থিম থেকে অটোমেটিক নেবে
       appBar: AppBar(
-        title: const Text('Favorite Jobs', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
-        elevation: 1,
+        title: Text(
+            'Favorite Jobs',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : Colors.black87,
+            )
+        ),
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        surfaceTintColor: theme.appBarTheme.surfaceTintColor,
+        scrolledUnderElevation: 0,
+        elevation: isDark ? 0 : 1,
         shadowColor: Colors.black12,
+        // ব্যাক বাটন কালার অ্যাডজাস্টমেন্ট
+        iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black87),
       ),
+
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: theme.primaryColor))
           : _favoriteJobs.isEmpty
-          ? _buildEmptyState()
+          ? _buildEmptyState(context)
           : RefreshIndicator(
-        onRefresh: _loadFavorites, // রিফ্রেশ করলে ফেভারিট লিস্ট আপডেট হবে
-        color: Colors.black87,
+        onRefresh: _loadFavorites,
+        color: theme.primaryColor,
+        backgroundColor: isDark ? theme.cardTheme.color : Colors.white,
         child: ListView.builder(
-          physics: const AlwaysScrollableScrollPhysics(), // আইটেম কম থাকলেও রিফ্রেশ করা যাবে
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.only(top: 8, bottom: 20),
           itemCount: _favoriteJobs.length,
           itemBuilder: (context, index) {
             final job = _favoriteJobs[index];
 
-            // ================= এখানেই আপনার PostCard ব্যবহার করা হয়েছে =================
+            // PostCard এখন নিজেই থিম সাপোর্ট করে, তাই শুধু কল করলেই হবে
             return PostCard(
               post: job,
               fallbackCategoryName: 'Saved Job',
             );
-            // =========================================================================
-
           },
         ),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.favorite_border, size: 80, color: Colors.grey.shade300),
+          Icon(
+              Icons.favorite_border,
+              size: 80,
+              color: isDark ? Colors.white10 : Colors.grey.shade300
+          ),
           const SizedBox(height: 16),
           Text(
             'কোনো ফেভারিট জব নেই',
-            style: TextStyle(fontSize: 18, color: Colors.grey.shade600, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                fontSize: 18,
+                color: isDark ? Colors.white70 : Colors.grey.shade600,
+                fontWeight: FontWeight.bold
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'আপনার পছন্দের সার্কুলারগুলো সেভ করে রাখুন',
-            style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+            style: TextStyle(
+                fontSize: 14,
+                color: isDark ? Colors.white38 : Colors.grey.shade500
+            ),
           ),
         ],
       ),

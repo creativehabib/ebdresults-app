@@ -25,53 +25,68 @@ class _BottomNavState extends State<BottomNav> {
 
   @override
   Widget build(BuildContext context) {
+    // বর্তমান থিম ডার্ক না লাইট তা চেক করার জন্য
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      body: IndexedStack( // IndexedStack ব্যবহার করলে স্ক্রিন চেঞ্জ হলেও ডাটা রিলোড হবে না
+      body: IndexedStack(
         index: index,
         children: screens,
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: index,
-        onTap: (i) {
-          setState(() {
-            index = i;
-          });
-        },
-        // স্টাইল এবং কালার কনফিগারেশন
-        type: BottomNavigationBarType.fixed, // ৫টি আইটেম থাকলে এটা অবশ্যই 'fixed' দিতে হবে
-        backgroundColor: Colors.white, // আপনার পছন্দমতো ব্যাকগ্রাউন্ড কালার দিন
-        selectedItemColor: Colors.blueAccent, // যেটা সিলেক্ট থাকবে সেটার কালার
-        unselectedItemColor: Colors.grey, // যেটা সিলেক্ট থাকবে না সেটার কালার
-        showUnselectedLabels: true, // আন-সিলেক্টেড লেখাগুলো দেখানোর জন্য
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-        unselectedLabelStyle: const TextStyle(fontSize: 12),
+      bottomNavigationBar: Container(
+        // ডার্ক মোডে হালকা বর্ডার দেওয়ার জন্য (অপশনাল)
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(
+              color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+              width: 1,
+            ),
+          ),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: index,
+          onTap: (i) {
+            setState(() {
+              index = i;
+            });
+          },
+          // ================= থিম অনুযায়ী কনফিগারেশন =================
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Theme.of(context).appBarTheme.backgroundColor, // থিমের অ্যাপবার কালারের সাথে মিলবে
+          selectedItemColor: Theme.of(context).primaryColor, // থিমের প্রাইমারি কালার (নেভি ব্লু/পার্পল)
+          unselectedItemColor: isDark ? Colors.white54 : Colors.grey.shade600,
+          showUnselectedLabels: true,
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          unselectedLabelStyle: const TextStyle(fontSize: 12),
+          elevation: 0, // কন্টেইনারে শ্যাডো হ্যান্ডেল করা হয়েছে
 
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home), // সিলেক্ট হলে আইকন চেঞ্জ হবে
-            label: "Home",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.school_outlined),
-            activeIcon: Icon(Icons.school),
-            label: "Results",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.work_outline),
-            activeIcon: Icon(Icons.work),
-            label: "Jobs",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.menu_book_outlined),
-            activeIcon: Icon(Icons.menu_book),
-            label: "Study",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.more_horiz),
-            label: "More",
-          ),
-        ],
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home),
+              label: "Home",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.school_outlined),
+              activeIcon: Icon(Icons.school),
+              label: "Results",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.work_outline),
+              activeIcon: Icon(Icons.work),
+              label: "Jobs",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.menu_book_outlined),
+              activeIcon: Icon(Icons.menu_book),
+              label: "Study",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.more_horiz),
+              label: "More",
+            ),
+          ],
+        ),
       ),
     );
   }

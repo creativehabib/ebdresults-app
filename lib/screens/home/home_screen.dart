@@ -108,6 +108,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ================= থিম অনুযায়ী আপডেট করা ক্যাটাগরি ট্যাব =================
   Widget _buildCategoryTabs() {
     if (_isLoadingCategories) {
       return const SizedBox(
@@ -118,8 +119,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (_categories.isEmpty) return const SizedBox.shrink();
 
-    return SizedBox(
-      height: 40,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      color: Theme.of(context).appBarTheme.backgroundColor, // থিম অনুযায়ী ব্যাকগ্রাউন্ড
+      height: 45,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: _categories.length,
@@ -154,25 +158,26 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Container(
               margin: const EdgeInsets.only(left: 16, right: 8),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     category['name'],
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: 14,
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                      color: isSelected ? Colors.black87 : Colors.grey.shade500,
+                      color: isSelected
+                          ? Theme.of(context).primaryColor
+                          : (isDark ? Colors.white70 : Colors.black54),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   if (isSelected)
                     Container(
                       height: 3,
-                      width: 40,
-                      decoration: const BoxDecoration(
-                        color: Color(0xff5c55a5),
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(3)),
+                      width: 20,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).primaryColor,
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     )
                   else
@@ -186,15 +191,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ================= Top Story Card  =================
   Widget _buildTopStoryCard(JobModel post) {
     return GestureDetector(
       onTap: () => _openPostDetails(post),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          color: Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(12), // রেডিয়াস বাড়ানো হয়েছে
           image: DecorationImage(
             image: NetworkImage(post.imageUrl.isNotEmpty ? post.imageUrl : 'https://via.placeholder.com/400'),
             fit: BoxFit.cover,
@@ -202,46 +205,49 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: Stack(
           children: [
-            Positioned(
-              bottom: 0, left: 0, right: 0,
+            Positioned.fill(
               child: Container(
-                height: 100,
                 decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
+                  borderRadius: BorderRadius.circular(12),
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
-                    colors: [Colors.black.withOpacity(0.8), Colors.transparent],
+                    colors: [Colors.black.withOpacity(0.85), Colors.transparent],
                   ),
                 ),
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      _cleanHtml(post.title),
-                      maxLines: 2, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, height: 1.3),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(Icons.access_time, color: Colors.white70, size: 14),
-                        const SizedBox(width: 4),
-                        Text(_formatDate(post.date), style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                      ],
-                    ),
-                  ],
-                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    _cleanHtml(post.title),
+                    maxLines: 2, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold, height: 1.3),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.access_time, color: Colors.white70, size: 14),
+                      const SizedBox(width: 4),
+                      Text(_formatDate(post.date), style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ],
               ),
             ),
             Positioned(
               top: 16, left: 16,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: const Color(0xff7369b2), borderRadius: BorderRadius.circular(4)),
-                child: const Text('Top Story', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor,
+                    borderRadius: BorderRadius.circular(4)
+                ),
+                child: const Text('Top Story', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
               ),
             ),
           ],
@@ -255,14 +261,14 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       child: Row(
         children: [
-          Container(width: 3, height: 18, color: const Color(0xff5c55a5)),
+          Container(width: 4, height: 20, color: Theme.of(context).primaryColor),
           const SizedBox(width: 8),
-          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.black87)),
+          Text(title, style: Theme.of(context).textTheme.titleLarge),
           const Spacer(),
           if (onViewAll != null)
-            GestureDetector(
-              onTap: onViewAll,
-              child: const Text('view all', style: TextStyle(color: Color(0xff5c55a5), fontWeight: FontWeight.w500, fontSize: 14)),
+            TextButton(
+              onPressed: onViewAll,
+              child: Text('view all', style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.w600)),
             ),
         ],
       ),
@@ -271,30 +277,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xfff6f7f9),
-
       drawer: const AppDrawer(),
-
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 1,
-        shadowColor: Colors.grey.withOpacity(0.3),
-        surfaceTintColor: Colors.white,
-        scrolledUnderElevation: 0,
         title: RichText(
-          text: const TextSpan(
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.black87),
-            children: [
+          text: TextSpan(
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: isDark ? Colors.white : Colors.black87),
+            children: const [
               TextSpan(text: 'JOB '),
               TextSpan(text: 'NEWS', style: TextStyle(color: Color(0xffff8f00))),
             ],
           ),
         ),
-        centerTitle: true,
         actions: [
-          IconButton(icon: const Icon(Icons.search, color: Colors.black87), onPressed: () {}),
-          IconButton(icon: const Icon(Icons.notifications_none_rounded, color: Colors.black87), onPressed: () {}),
+          IconButton(icon: const Icon(Icons.search), onPressed: () {}),
+          IconButton(icon: const Icon(Icons.notifications_none_rounded), onPressed: () {}),
         ],
       ),
 
@@ -324,7 +323,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(color: Colors.white, child: _buildCategoryTabs()),
+                  _buildCategoryTabs(),
 
                   const SizedBox(height: 16),
 
@@ -354,15 +353,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           width: _currentBannerIndex == index ? 20 : 6,
                           height: 6,
                           decoration: BoxDecoration(
-                            color: _currentBannerIndex == index ? const Color(0xff5c55a5) : Colors.grey.shade400,
+                            color: _currentBannerIndex == index ? Theme.of(context).primaryColor : Colors.grey.shade400,
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
                       ),
                     ),
                   ],
-
-                  const SizedBox(height: 16),
 
                   if (popularNews.isNotEmpty) ...[
                     _buildSectionHeader('Popular News', onViewAll: () {
@@ -377,14 +374,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: popularNews.length,
                       itemBuilder: (context, index) {
-
-                        // ================= PostCard =================
                         return PostCard(
                           post: popularNews[index],
                           fallbackCategoryName: 'Popular News',
                         );
-                        // =========================================================================
-
                       },
                     ),
                   ],

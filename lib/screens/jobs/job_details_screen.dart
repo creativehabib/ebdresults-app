@@ -27,9 +27,11 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
 
   Future<void> _checkFavoriteStatus() async {
     final status = await FavoriteService.isFavorite(widget.post);
-    setState(() {
-      _isFavorite = status;
-    });
+    if (mounted) {
+      setState(() {
+        _isFavorite = status;
+      });
+    }
   }
 
   String _cleanTitle(String rawText) {
@@ -93,11 +95,14 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     final htmlContent = widget.post.content.isNotEmpty ? widget.post.content : widget.post.excerpt;
     final String cleanPostTitle = _cleanTitle(widget.post.title);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      // Scaffold এখন থিম থেকে ব্যাকগ্রাউন্ড নেবে
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
         slivers: [
@@ -105,7 +110,8 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
             expandedHeight: 230.0,
             pinned: true,
             stretch: true,
-            backgroundColor: Colors.white,
+            // ডার্ক মোডে অ্যাপবার ডার্ক হবে
+            backgroundColor: theme.appBarTheme.backgroundColor,
             elevation: 0,
             scrolledUnderElevation: 0,
 
@@ -115,7 +121,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                 onTap: () => Navigator.pop(context),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xff0e1726).withOpacity(0.4),
+                    color: Colors.black.withOpacity(0.3),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.arrow_back, color: Colors.white, size: 22),
@@ -133,6 +139,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
+                          backgroundColor: isDark ? theme.primaryColor : Colors.black87,
                           content: Text(_isFavorite ? 'ফেভারিট থেকে রিমুভ করা হয়েছে' : 'ফেভারিট এ সেভ করা হয়েছে!'),
                           duration: const Duration(seconds: 1),
                         ),
@@ -142,7 +149,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xff0e1726).withOpacity(0.4),
+                      color: Colors.black.withOpacity(0.3),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -164,18 +171,16 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // ইমেজের পেছনে একটি হালকা কালার দেওয়া হলো যাতে ছবি ছোট হলে খারাপ না লাগে
-                  Container(color: const Color(0xfff1f5f9)),
+                  Container(color: isDark ? theme.scaffoldBackgroundColor : const Color(0xfff1f5f9)),
 
                   if (widget.post.imageUrl.isNotEmpty)
                     Image.network(
                       widget.post.imageUrl,
-                      // ================= Aspect Ratio ঠিক রাখতে contain ব্যবহার করা হলো =================
                       fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const Icon(Icons.image, size: 60, color: Colors.grey),
+                      errorBuilder: (_, __, ___) => Icon(Icons.image, size: 60, color: isDark ? Colors.white24 : Colors.grey),
                     )
                   else
-                    const Icon(Icons.image, size: 60, color: Colors.grey),
+                    Icon(Icons.image, size: 60, color: isDark ? Colors.white24 : Colors.grey),
 
                   Positioned(
                     top: 0, left: 0, right: 0,
@@ -198,18 +203,18 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
           SliverToBoxAdapter(
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                // কন্টেন্ট এরিয়ার ব্যাকগ্রাউন্ড থিমের সেটিং অনুযায়ী হবে
+                color: theme.scaffoldBackgroundColor,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(24),
                   topRight: Radius.circular(24),
                 ),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5)),
+                  if (!isDark) BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5)),
                 ],
               ),
               transform: Matrix4.translationValues(0.0, -20.0, 0.0),
               child: Padding(
-                // ================= উপরের প্যাডিং 20 থেকে বাড়িয়ে 32 করা হলো =================
                 padding: const EdgeInsets.only(top: 32.0, left: 20.0, right: 20.0, bottom: 20.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -236,7 +241,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           decoration: BoxDecoration(
-                            color: const Color(0xff1e293b),
+                            color: theme.primaryColor,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Row(
@@ -258,34 +263,34 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
 
                     Text(
                       cleanPostTitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
                         height: 1.4,
-                        color: Color(0xff334155),
+                        color: theme.textTheme.titleLarge?.color,
                       ),
                     ),
                     const SizedBox(height: 20),
 
                     Row(
                       children: [
-                        Icon(Icons.person, size: 16, color: Colors.grey.shade500),
+                        Icon(Icons.person, size: 16, color: isDark ? Colors.white38 : Colors.grey.shade500),
                         const SizedBox(width: 4),
                         Text(
                           widget.post.authorName,
-                          style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                          style: TextStyle(fontSize: 13, color: isDark ? Colors.white60 : Colors.grey.shade600, fontWeight: FontWeight.w500),
                         ),
                         const SizedBox(width: 16),
-                        Icon(Icons.access_time, size: 16, color: Colors.grey.shade500),
+                        Icon(Icons.access_time, size: 16, color: isDark ? Colors.white38 : Colors.grey.shade500),
                         const SizedBox(width: 4),
                         Text(
                           _formatDate(widget.post.date),
-                          style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                          style: TextStyle(fontSize: 13, color: isDark ? Colors.white60 : Colors.grey.shade600, fontWeight: FontWeight.w500),
                         ),
                         const Spacer(),
 
                         IconButton(
-                          icon: Icon(Icons.share_outlined, color: Colors.grey.shade700, size: 22),
+                          icon: Icon(Icons.share_outlined, color: isDark ? Colors.white70 : Colors.grey.shade700, size: 22),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                           onPressed: () async {
@@ -296,21 +301,22 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    const Divider(color: Colors.black12, height: 1),
+                    Divider(color: isDark ? Colors.white10 : Colors.black12, height: 1),
                     const SizedBox(height: 20),
 
+                    // HTML কন্টেন্ট এর কালার ডার্ক মোড অনুযায়ী ফিক্স করা হলো
                     HtmlWidget(
                       htmlContent.isNotEmpty ? htmlContent : '<p>এই পোস্টের কোনো বর্ণনা পাওয়া যায়নি।</p>',
-                      textStyle: const TextStyle(
+                      textStyle: TextStyle(
                         fontSize: 16.0,
                         height: 1.8,
-                        color: Color(0xff475569),
+                        color: isDark ? const Color(0xffcbd5e1) : const Color(0xff475569),
                       ),
                       customStylesBuilder: (element) {
-                        if (element.localName == 'a') return {'color': '#2979ff', 'text-decoration': 'none'};
-                        if (element.localName == 'table') return {'border': '1px solid #e0e0e0', 'width': '100%'};
-                        if (element.localName == 'th') return {'background-color': '#f8fafc', 'padding': '10px'};
-                        if (element.localName == 'td') return {'padding': '10px', 'border': '1px solid #e0e0e0'};
+                        if (element.localName == 'a') return {'color': '#60a5fa', 'text-decoration': 'none'};
+                        if (element.localName == 'table') return {'border': '1px solid ${isDark ? "#334155" : "#e0e0e0"}', 'width': '100%'};
+                        if (element.localName == 'th') return {'background-color': isDark ? '#1e293b' : '#f8fafc', 'padding': '10px'};
+                        if (element.localName == 'td') return {'padding': '10px', 'border': '1px solid ${isDark ? "#334155" : "#e0e0e0"}'};
                         if (element.localName == 'img') return {'margin-top': '15px', 'margin-bottom': '15px', 'border-radius': '8px'};
                         return null;
                       },

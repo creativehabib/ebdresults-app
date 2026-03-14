@@ -23,8 +23,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.ebdresults"
-
-        minSdk = flutter.minSdkVersion
+        minSdk = flutter.minSdkVersion // অথবা flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -34,12 +33,16 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
+            // এখানে debug signing দেওয়া আছে, রিলিজের জন্য আপনার আসল কী-স্টোর ফাইল ব্যবহার করা উচিত
             signingConfig = signingConfigs.getByName("debug")
+
+            // নিচের এই ৩টি লাইন প্রোগার্ড এরর ঠিক করতে সাহায্য করবে
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 
-    // Kotlin DSL-এর জন্য সঠিক কোড
     applicationVariants.all {
         val variant = this
         if (variant.buildType.name == "release") {
