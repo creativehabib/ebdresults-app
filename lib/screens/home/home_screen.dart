@@ -5,9 +5,9 @@ import 'package:ebdresults/screens/jobs/job_screen.dart';
 import 'package:ebdresults/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
-import '../../core/constants/api_urls.dart';
-import '../../widgets/app_drawer.dart';
+import 'package:ebdresults/core/constants/api_urls.dart';
+import 'package:ebdresults/widgets/app_drawer.dart';
+import 'package:ebdresults/widgets/post_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,14 +17,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // =================== Future Variable Update ===================
-  // Index 0: Top Stories (Last Modified)
-  // Index 1: Popular News (Most Popular)
   late Future<List<List<JobModel>>> _homeDataFuture;
 
   List<Map<String, dynamic>> _categories = [];
   bool _isLoadingCategories = true;
-  int _selectedCategoryId = 0; // 0 মানে ডিফল্ট 'Explore'
+  int _selectedCategoryId = 0;
 
   int _currentBannerIndex = 0;
 
@@ -32,28 +29,22 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _fetchCategories();
-    _homeDataFuture = _fetchHomeData(); // একসাথে দুটি এপিআই কল হবে
+    _homeDataFuture = _fetchHomeData();
   }
 
-  // =================== একসাথে দুটি এপিআই কল করার ফাংশন ===================
   Future<List<List<JobModel>>> _fetchHomeData() async {
     try {
-      // ১. Top Story এর জন্য (সর্বোচ্চ ৩টি)
       final topStoriesResponse = ApiService.fetchList('${ApiUrls.base}/posts/last-modify-posts');
-
-      // ২. Popular News এর জন্য most-popular কল করা হলো
       final popularNewsResponse = ApiService.fetchList('${ApiUrls.base}/posts/most-popular');
 
       final results = await Future.wait([topStoriesResponse, popularNewsResponse]);
 
-      // Top Stories পার্স করা হলো
       final topStories = results[0]
           .whereType<Map<String, dynamic>>()
           .map(JobModel.fromJson)
           .take(3)
           .toList();
 
-      // Popular News পার্স করা হলো
       final popularNews = results[1]
           .whereType<Map<String, dynamic>>()
           .map(JobModel.fromJson)
@@ -61,11 +52,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
       return [topStories, popularNews];
     } catch (e) {
-      return [[], []]; // কোনো সমস্যা হলে ফাঁকা লিস্ট রিটার্ন করবে
+      return [[], []];
     }
   }
 
-  // =================== ক্যাটাগরি ফেচ করার ফাংশন ===================
   Future<void> _fetchCategories() async {
     try {
       final response = await ApiService.fetchList(ApiUrls.categories);
@@ -156,7 +146,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ).then((_) {
-                // ব্যাক করে আসলে আবার Explore ট্যাব সিলেক্ট দেখাবে
                 setState(() {
                   _selectedCategoryId = 0;
                 });
@@ -197,6 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ================= Top Story Card  =================
   Widget _buildTopStoryCard(JobModel post) {
     return GestureDetector(
       onTap: () => _openPostDetails(post),
@@ -279,66 +269,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildNewsCard(JobModel news) {
-    return GestureDetector(
-      onTap: () => _openPostDetails(news),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _cleanHtml(news.title),
-                    maxLines: 3, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, height: 1.3),
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: const Color(0xff546e7a), borderRadius: BorderRadius.circular(4)),
-                    child: Text(news.firstCategoryName, style: const TextStyle(color: Colors.white, fontSize: 11)),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      const Icon(Icons.access_time, size: 14, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text(_formatDate(news.date), style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                      const Spacer(),
-                      const Icon(Icons.remove_red_eye_outlined, size: 14, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text(news.views, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: SizedBox(
-                width: 85, height: 85,
-                child: news.imageUrl.isNotEmpty
-                    ? Image.network(news.imageUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(color: Colors.grey.shade200))
-                    : Container(color: Colors.grey.shade200, child: const Icon(Icons.image, color: Colors.grey)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -368,7 +298,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
 
-      // FutureBuilder এখন List<List<JobModel>> টাইপ রিসিভ করবে
       body: FutureBuilder<List<List<JobModel>>>(
         future: _homeDataFuture,
         builder: (context, snapshot) {
@@ -380,7 +309,6 @@ class _HomeScreenState extends State<HomeScreen> {
             return const Center(child: Text('Data load করতে সমস্যা হয়েছে।'));
           }
 
-          // ইনডেক্স ০ তে Top Stories, ইনডেক্স ১ এ Popular News
           final topStories = snapshot.data?[0] ?? [];
           final popularNews = snapshot.data?[1] ?? [];
 
@@ -388,7 +316,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onRefresh: () async {
               _fetchCategories();
               setState(() {
-                _homeDataFuture = _fetchHomeData(); // রিফ্রেশ করলে আবার ডাটা আনবে
+                _homeDataFuture = _fetchHomeData();
               });
             },
             child: SingleChildScrollView(
@@ -400,7 +328,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 16),
 
-                  // ================= Top Story Slider =================
                   if (topStories.isNotEmpty) ...[
                     SizedBox(
                       height: 220,
@@ -437,7 +364,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 16),
 
-                  // ================= Popular News Section =================
                   if (popularNews.isNotEmpty) ...[
                     _buildSectionHeader('Popular News', onViewAll: () {
                       Navigator.push(
@@ -451,7 +377,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: popularNews.length,
                       itemBuilder: (context, index) {
-                        return _buildNewsCard(popularNews[index]);
+
+                        // ================= PostCard =================
+                        return PostCard(
+                          post: popularNews[index],
+                          fallbackCategoryName: 'Popular News',
+                        );
+                        // =========================================================================
+
                       },
                     ),
                   ],

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
-import '../screens/favorite_jobs_screen.dart';
-import '../screens/job_categories_screen.dart';
-import '../screens/settings_screen.dart';
-import '../screens/about_us_screen.dart';
+import 'package:ebdresults/screens/favorite_jobs_screen.dart';
+import 'package:ebdresults/screens/job_categories_screen.dart';
+import 'package:ebdresults/screens/settings_screen.dart';
+import 'package:ebdresults/screens/about_us_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});

@@ -9,10 +9,9 @@ class JobModel {
   final String slug;
   final List<int> categoryIds;
   final List<int> tagIds;
-
-  // নতুন যোগ করা ভেরিয়েবল
   final String firstCategoryName;
   final String views;
+  final String authorName;
 
   const JobModel({
     required this.id,
@@ -27,12 +26,11 @@ class JobModel {
     required this.tagIds,
     required this.firstCategoryName,
     required this.views,
+    required this.authorName,
   });
 
-  // ================= নতুন যোগ করা toJson() মেথড =================
-  // লোকাল ডাটাবেসে সেভ করার জন্য এই মেথডটি প্রয়োজন
+  // লোকাল ডাটাবেসে (Favorite) সেভ করার জন্য
   Map<String, dynamic> toJson() {
-    // API-এর মতো স্ট্রাকচার তৈরি করার জন্য ক্যাটাগরির লিস্ট বানানো হচ্ছে
     List<Map<String, dynamic>> categoriesData = [];
     if (categoryIds.isNotEmpty) {
       categoriesData.add({'id': categoryIds.first, 'name': firstCategoryName});
@@ -45,110 +43,83 @@ class JobModel {
 
     return {
       'id': id,
-      'title': title,
-      'excerpt': excerpt,
+      'name': title,
+      'description': excerpt,
       'content': content,
-      'date': date,
-      'link': link,
+      'published_at': date,
       'image_url': imageUrl,
       'slug': slug,
       'categories': categoriesData,
-      'tags': tagIds,
+      'tags': tagIds.map((id) => {'id': id}).toList(),
       'views': views,
+      'author': {
+        'name': authorName,
+      }
     };
   }
-  // =============================================================
 
+  // Laravel API থেকে ডাটা রিসিভ করার জন্য
   factory JobModel.fromJson(Map<String, dynamic> json) {
-    String pickText(dynamic value) {
-      if (value is String) {
-        return value;
+
+    // ১. ক্যাটাগরি আইডি এবং প্রথম ক্যাটাগরির নাম বের করা
+    List<int> catIds = [];
+    String catName = 'Job Circular'; // ডিফল্ট নাম
+
+    if (json['categories'] != null && json['categories'] is List) {
+      final categoriesList = json['categories'] as List;
+      if (categoriesList.isNotEmpty) {
+        catName = categoriesList[0]['name']?.toString() ?? 'Job Circular';
+        catIds = categoriesList
+            .map((c) => int.tryParse(c['id'].toString()) ?? 0)
+            .where((id) => id > 0)
+            .toList();
       }
-      if (value is Map<String, dynamic>) {
-        final rendered = value['rendered'];
-        if (rendered is String) {
-          return rendered;
-        }
-      }
-      return '';
     }
 
-    // আপডেট করা pickIntList: এটি এখন List of ID এবং List of Object দুটোই হ্যান্ডেল করতে পারবে
-    List<int> pickIntList(dynamic value) {
-      if (value is List) {
-        return value.map((e) {
-          if (e is num) return e.toInt();
-          if (e is Map<String, dynamic> && e['id'] != null) {
-            return int.tryParse(e['id'].toString()) ?? 0;
-          }
-          return 0;
-        }).where((id) => id > 0).toList();
-      }
-      return [];
+    // ২. ট্যাগ আইডি বের করা
+    List<int> tIds = [];
+    if (json['tags'] != null && json['tags'] is List) {
+      tIds = (json['tags'] as List)
+          .map((t) => int.tryParse(t['id'].toString()) ?? 0)
+          .where((id) => id > 0)
+          .toList();
     }
 
-    // প্রথম ক্যাটাগরির নাম বের করার ফাংশন
-    String extractCategoryName(dynamic value) {
-      if (value is List && value.isNotEmpty) {
-        final firstItem = value.first;
-        if (firstItem is Map<String, dynamic> && firstItem['name'] != null) {
-          return firstItem['name'].toString();
-        }
-      }
-      return 'Update'; // যদি ক্যাটাগরি না থাকে তবে ডিফল্ট নাম
+    // ৩. অথর (Author) এর নাম বের করা
+    String author = 'Admin';
+    if (json['author'] != null && json['author'] is Map) {
+      author = json['author']['name']?.toString() ?? 'Admin';
     }
 
-    String pickImage(dynamic value) {
-      if (value is String) {
-        return value;
-      }
+    // ৪. ইমেজ লিংক বের করার ১০০% কার্যকরী লজিক
+    String extractImage(Map<String, dynamic> data) {
+      final imgUrl = data['image_url']?.toString() ?? '';
+      if (imgUrl.isNotEmpty && imgUrl.startsWith('http')) return imgUrl;
 
-      if (value is Map<String, dynamic>) {
-        final url = value['url'] ?? value['src'] ?? value['image_url'];
-        if (url is String) {
-          return url;
-        }
-      }
+      final img = data['image']?.toString() ?? '';
+      if (img.isNotEmpty && img.startsWith('http')) return img;
 
-      return '';
+      return ''; // যদি কোনো ছবি না থাকে
     }
 
-    String buildLink(Map<String, dynamic> map) {
-      final raw = (map['link'] ?? map['url'] ?? '').toString();
-      if (raw.isNotEmpty) {
-        return raw;
-      }
-
-      final slug = (map['slug'] ?? '').toString();
-      if (slug.isNotEmpty) {
-        return 'https://ebdresults.com/$slug';
-      }
-
-      return '';
-    }
-
-    final excerpt = pickText(json['excerpt'] ?? json['description']);
-    final content = pickText(json['content']);
+    // ৫. স্লাগ এবং লিংক জেনারেট করা
+    final String slugStr = (json['slug'] ?? '').toString();
+    final String linkStr = slugStr.isNotEmpty ? 'https://ebdresults.com/$slugStr' : '';
 
     return JobModel(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      title: pickText(json['title']).isNotEmpty
-          ? pickText(json['title'])
-          : (json['name'] ?? '').toString(),
-      excerpt: excerpt.isNotEmpty ? excerpt : content,
-      content: content,
-      date: (json['date'] ?? json['published_at'] ?? '').toString(),
-      link: buildLink(json),
-      imageUrl: pickImage(json['image_url']).isNotEmpty
-          ? pickImage(json['image_url'])
-          : pickImage(json['image']),
-      slug: (json['slug'] ?? '').toString(),
-      categoryIds: pickIntList(json['categories']),
-      tagIds: pickIntList(json['tags']),
-
-      // নতুন ডেটাগুলো মডেলে পাস করা হলো
-      firstCategoryName: extractCategoryName(json['categories']),
+      id: int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      title: (json['name'] ?? json['title'] ?? '').toString(),
+      excerpt: (json['description'] ?? json['excerpt'] ?? '').toString(),
+      content: (json['content'] ?? '').toString(),
+      date: (json['published_at'] ?? json['date'] ?? '').toString(),
+      link: linkStr,
+      imageUrl: extractImage(json), // আপডেট করা ফাংশনটি কল করা হলো
+      slug: slugStr,
+      categoryIds: catIds,
+      tagIds: tIds,
+      firstCategoryName: catName,
       views: (json['views'] ?? '0').toString(),
+      authorName: author,
     );
   }
 }

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-
-// আপনার প্রোজেক্টের পাথ অনুযায়ী ইমপোর্টগুলো ঠিক করে নেবেন
-import '../core/constants/api_urls.dart';
-import '../services/api_service.dart';
+import 'package:ebdresults/core/constants/api_urls.dart';
+import 'package:ebdresults/services/api_service.dart';
 import 'home/category_post_screen.dart';
 
 class JobCategoriesScreen extends StatefulWidget {

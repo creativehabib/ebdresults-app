@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../screens/home/home_screen.dart';
-import '../screens/jobs/job_screen.dart';
-import '../screens/results/result_screen.dart';
-import '../screens/study/study_screen.dart';
-import '../screens/more/more_screen.dart';
+import 'package:ebdresults/screens/home/home_screen.dart';
+import 'package:ebdresults/screens/jobs/job_screen.dart';
+import 'package:ebdresults/screens/results/result_screen.dart';
+import 'package:ebdresults/screens/study/study_screen.dart';
+import 'package:ebdresults/screens/more/more_screen.dart';
 
 class BottomNav extends StatefulWidget {
   const BottomNav({super.key});
