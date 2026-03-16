@@ -1,11 +1,14 @@
+import 'dart:convert';
 import 'package:ebdresults/models/job_model.dart';
 import 'package:ebdresults/services/favorite_service.dart';
+import 'package:ebdresults/services/connectivity_service.dart'; // যুক্ত করা হয়েছে
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:ebdresults/screens/home/category_post_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // যুক্ত করা হয়েছে
 
 class JobDetailsScreen extends StatefulWidget {
   final JobModel post;
@@ -18,11 +21,13 @@ class JobDetailsScreen extends StatefulWidget {
 
 class _JobDetailsScreenState extends State<JobDetailsScreen> {
   bool _isFavorite = false;
+  bool _isOffline = false; // অফলাইন স্ট্যাটাস চেক
 
   @override
   void initState() {
     super.initState();
     _checkFavoriteStatus();
+    _handleOfflineCaching(); // ক্যাশিং হ্যান্ডলার
   }
 
   Future<void> _checkFavoriteStatus() async {
@@ -31,6 +36,20 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
       setState(() {
         _isFavorite = status;
       });
+    }
+  }
+
+  // ডাটা ক্যাশ করা এবং কানেক্টিভিটি চেক করা
+  Future<void> _handleOfflineCaching() async {
+    bool connected = await ConnectivityService.isConnected();
+    final prefs = await SharedPreferences.getInstance();
+    final String cacheKey = 'cached_job_details_${widget.post.id}';
+
+    if (connected) {
+      await prefs.setString(cacheKey, json.encode(widget.post.toJson()));
+      if (mounted) setState(() => _isOffline = false);
+    } else {
+      if (mounted) setState(() => _isOffline = true);
     }
   }
 
@@ -49,6 +68,17 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
   }
 
   Future<void> _openLinkInternally(String link) async {
+    // অফলাইনে লিংক ওপেন করা ব্লক করা হয়েছে
+    bool connected = await ConnectivityService.isConnected();
+    if (!connected) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('লিংক ওপেন করতে ইন্টারনেট সংযোগ লাগবে!')),
+        );
+      }
+      return;
+    }
+
     try {
       String secureUrl = link.trim();
       if (secureUrl.startsWith('http://')) {
@@ -102,7 +132,6 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     final String cleanPostTitle = _cleanTitle(widget.post.title);
 
     return Scaffold(
-      // Scaffold এখন থিম থেকে ব্যাকগ্রাউন্ড নেবে
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
         slivers: [
@@ -110,7 +139,6 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
             expandedHeight: 230.0,
             pinned: true,
             stretch: true,
-            // ডার্ক মোডে অ্যাপবার ডার্ক হবে
             backgroundColor: theme.appBarTheme.backgroundColor,
             elevation: 0,
             scrolledUnderElevation: 0,
@@ -203,7 +231,6 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
           SliverToBoxAdapter(
             child: Container(
               decoration: BoxDecoration(
-                // কন্টেন্ট এরিয়ার ব্যাকগ্রাউন্ড থিমের সেটিং অনুযায়ী হবে
                 color: theme.scaffoldBackgroundColor,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(24),
@@ -219,10 +246,37 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // অফলাইন মোড ইন্ডিকেটর বার (নতুন লজিক)
+                    if (_isOffline)
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.cloud_off_rounded, color: Colors.orange, size: 18),
+                            SizedBox(width: 8),
+                            Text(
+                              "অফলাইন মোড: সংরক্ষিত ডাটা দেখাচ্ছেন",
+                              style: TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+
                     Material(
                       color: Colors.transparent,
                       child: InkWell(
                         onTap: () {
+                          if (_isOffline) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("অফলাইনে ক্যাটাগরি ব্রাউজ করা যাবে না")));
+                            return;
+                          }
                           if (widget.post.categoryIds.isNotEmpty) {
                             Navigator.push(
                               context,
@@ -304,7 +358,6 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                     Divider(color: isDark ? Colors.white10 : Colors.black12, height: 1),
                     const SizedBox(height: 20),
 
-                    // HTML কন্টেন্ট এর কালার ডার্ক মোড অনুযায়ী ফিক্স করা হলো
                     HtmlWidget(
                       htmlContent.isNotEmpty ? htmlContent : '<p>এই পোস্টের কোনো বর্ণনা পাওয়া যায়নি।</p>',
                       textStyle: TextStyle(

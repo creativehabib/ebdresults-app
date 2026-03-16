@@ -36,7 +36,6 @@ class _FavoriteJobsScreenState extends State<FavoriteJobsScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      // backgroundColor এখন থিম থেকে অটোমেটিক নেবে
       appBar: AppBar(
         title: Text(
             'Favorite Jobs',
@@ -46,14 +45,9 @@ class _FavoriteJobsScreenState extends State<FavoriteJobsScreen> {
             )
         ),
         backgroundColor: theme.appBarTheme.backgroundColor,
-        surfaceTintColor: theme.appBarTheme.surfaceTintColor,
-        scrolledUnderElevation: 0,
         elevation: isDark ? 0 : 1,
-        shadowColor: Colors.black12,
-        // ব্যাক বাটন কালার অ্যাডজাস্টমেন্ট
         iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black87),
       ),
-
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: theme.primaryColor))
           : _favoriteJobs.isEmpty
@@ -61,7 +55,6 @@ class _FavoriteJobsScreenState extends State<FavoriteJobsScreen> {
           : RefreshIndicator(
         onRefresh: _loadFavorites,
         color: theme.primaryColor,
-        backgroundColor: isDark ? theme.cardTheme.color : Colors.white,
         child: ListView.builder(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.only(top: 8, bottom: 20),
@@ -69,10 +62,42 @@ class _FavoriteJobsScreenState extends State<FavoriteJobsScreen> {
           itemBuilder: (context, index) {
             final job = _favoriteJobs[index];
 
-            // PostCard এখন নিজেই থিম সাপোর্ট করে, তাই শুধু কল করলেই হবে
-            return PostCard(
-              post: job,
-              fallbackCategoryName: 'Saved Job',
+            // Dismissible যোগ করা হয়েছে যাতে স্লাইড করে রিমুভ করা যায়
+            return Dismissible(
+              key: Key(job.id.toString()),
+              direction: DismissDirection.endToStart,
+              background: Container(
+                alignment: Alignment.centerRight,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                color: Colors.redAccent,
+                child: const Icon(Icons.delete_forever, color: Colors.white),
+              ),
+              onDismissed: (direction) async {
+                await FavoriteService.toggleFavorite(job);
+                setState(() {
+                  _favoriteJobs.removeAt(index);
+                });
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("ফেভারিট থেকে রিমুভ করা হয়েছে"), duration: Duration(seconds: 1)),
+                  );
+                }
+              },
+              child: InkWell(
+                onTap: () {
+                  // ডিটেইলস পেজ থেকে ফিরে আসলে লিস্ট আপডেট করার জন্য .then ব্যবহার করা হয়েছে
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PostCard(post: job, fallbackCategoryName: 'Saved Job'), // আপনার ডিটেইলস পেজ কল করবেন এখানে
+                    ),
+                  ).then((_) => _loadFavorites());
+                },
+                child: PostCard(
+                  post: job,
+                  fallbackCategoryName: 'Saved Job',
+                ),
+              ),
             );
           },
         ),
@@ -102,12 +127,9 @@ class _FavoriteJobsScreenState extends State<FavoriteJobsScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
+          const Text(
             'আপনার পছন্দের সার্কুলারগুলো সেভ করে রাখুন',
-            style: TextStyle(
-                fontSize: 14,
-                color: isDark ? Colors.white38 : Colors.grey.shade500
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey),
           ),
         ],
       ),
