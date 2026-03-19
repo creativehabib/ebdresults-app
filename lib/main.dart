@@ -55,90 +55,88 @@ Future<void> initOneSignal() async {
     OneSignal.User.pushSubscription.optOut();
   }
 
-  // ২. নোটিফিকেশন আসার সাথে সাথে অটোমেটিক সেভ করার লজিক
-  OneSignal.Notifications.addForegroundWillDisplayListener((event) {
+  // ২. নোটিফিকেশন আসার সাথে সাথে অটোমেটিক সেভ করার লজিক (ব্যাকগ্রাউন্ড সাপোর্টসহ)
+  OneSignal.Notifications.addForegroundWillDisplayListener((event) async {
     final notification = event.notification;
 
-    // additionalData থেকে postId বের করা
+    // ডাটা সেভ হওয়া পর্যন্ত অপেক্ষা করা জরুরি (await)
+    await _saveNotificationData(notification, isRead: false);
+
+    event.notification.display();
+  });
+
+  // ৩. নোটিফিকেশন ক্লিক হ্যান্ডলার (অ্যাপ ব্যাকগ্রাউন্ড থেকে ওপেন হলে)
+  OneSignal.Notifications.addClickListener((event) async {
+    final notification = event.notification;
+
+    // ক্লিক করার সাথে সাথে ডাটা আপডেট/সেভ করা
+    await _saveNotificationData(notification, isRead: true);
+
+    final data = notification.additionalData;
+    if (data != null && data.containsKey("post_id")) {
+      String postId = data["post_id"].toString();
+      _handleNotificationClick(postId);
+    }
+  });
+}
+
+// ৪. ডাটা প্রসেস এবং সেভ করার কমন ফাংশন
+Future<void> _saveNotificationData(OSNotification notification, {required bool isRead}) async {
+  try {
     final data = notification.additionalData;
     String? postIdFromData;
     if (data != null && data.containsKey("post_id")) {
       postIdFromData = data["post_id"].toString();
     }
 
-    // ডাটা মডেল তৈরি করে লোকাল সার্ভিসে সেভ করা
     final newNotify = NotificationModel(
       id: notification.notificationId,
       title: notification.title ?? "নতুন বিজ্ঞপ্তি",
       message: notification.body ?? "",
       dateTime: DateTime.now(),
-      postId: postIdFromData, // postId যুক্ত করা হয়েছে
-      isRead: false,
+      postId: postIdFromData,
+      isRead: isRead,
     );
 
-    NotificationService.addNotification(newNotify);
-
-    // নোটিফিকেশন ডিসপ্লে করা
-    event.notification.display();
-  });
-
-  // ৩. নোটিফিকেশন ক্লিক হ্যান্ডলার
-  OneSignal.Notifications.addClickListener((event) {
-    final notification = event.notification;
-    final data = notification.additionalData;
-
-    String? postIdFromData;
-    if (data != null && data.containsKey("post_id")) {
-      postIdFromData = data["post_id"].toString();
-    }
-
-    // ক্লিক করা নোটিফিকেশনটি সেভ করা
-    final clickedNotify = NotificationModel(
-      id: notification.notificationId,
-      title: notification.title ?? "নতুন বিজ্ঞপ্তি",
-      message: notification.body ?? "",
-      dateTime: DateTime.now(),
-      postId: postIdFromData, // postId যুক্ত করা হয়েছে
-      isRead: true,
-    );
-    NotificationService.addNotification(clickedNotify);
-
-    if (postIdFromData != null) {
-      _handleNotificationClick(postIdFromData);
-    }
-  });
+    // SharedPreferences এ রাইট শেষ না হওয়া পর্যন্ত প্রসেসটি থামিয়ে রাখা
+    await NotificationService.addNotification(newNotify);
+  } catch (e) {
+    debugPrint("Background Notification Save Error: $e");
+  }
 }
 
 Future<void> _handleNotificationClick(String postId) async {
-  final context = navigatorKey.currentContext;
-  if (context != null) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
-  }
-
-  try {
-    final response = await ApiService.fetchSingle('posts/$postId');
-
-    // ডায়ালগ বন্ধ করা
-    if (context != null && navigatorKey.currentState!.canPop()) {
-      navigatorKey.currentState!.pop();
-    }
-
-    if (response != null) {
-      final job = JobModel.fromJson(response);
-      navigatorKey.currentState?.push(
-        MaterialPageRoute(builder: (context) => JobDetailsScreen(post: job)),
+  // অ্যাপ লোড হওয়ার জন্য সামান্য ডিলে (যদি ব্যাকগ্রাউন্ড থেকে রিস্টার্ট হয়)
+  Future.delayed(const Duration(milliseconds: 300), () async {
+    final context = navigatorKey.currentContext;
+    if (context != null) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
       );
     }
-  } catch (e) {
-    if (context != null && navigatorKey.currentState!.canPop()) {
-      navigatorKey.currentState!.pop();
+
+    try {
+      final response = await ApiService.fetchSingle('posts/$postId');
+
+      if (context != null && navigatorKey.currentState!.canPop()) {
+        navigatorKey.currentState!.pop();
+      }
+
+      if (response != null) {
+        final job = JobModel.fromJson(response);
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(builder: (context) => JobDetailsScreen(post: job)),
+        );
+      }
+    } catch (e) {
+      if (context != null && navigatorKey.currentState!.canPop()) {
+        navigatorKey.currentState!.pop();
+      }
+      debugPrint('Notification Click Error: $e');
     }
-    debugPrint('Notification Click Error: $e');
-  }
+  });
 }
 
 // ================= Main App Widget =================
