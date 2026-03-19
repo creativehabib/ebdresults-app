@@ -145,17 +145,17 @@ class AboutUsScreen extends StatelessWidget {
                             _buildSocialIcon(
                               icon: Icons.facebook,
                               color: const Color(0xff1877F2),
-                              onTap: () => _launchUrl("https://facebook.com/yourprofile"),
+                              onTap: () => _launchUrl("https://facebook.com/creativehabib"),
                             ),
                             _buildSocialIcon(
                               icon: Icons.language,
                               color: Colors.teal,
-                              onTap: () => _launchUrl("https://yourwebsite.com"),
+                              onTap: () => _launchUrl("https://creativehabib.com"),
                             ),
                             _buildSocialIcon(
                               icon: Icons.email,
                               color: Colors.redAccent,
-                              onTap: () => _launchUrl("mailto:your@email.com"),
+                              onTap: () => _launchUrl("mailto:iamhabibnu@email.com"),
                             ),
                           ],
                         ),

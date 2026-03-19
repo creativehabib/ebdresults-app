@@ -1,4 +1,4 @@
-package com.example.ebdresults
+package com.ebdresults.app
 
 import io.flutter.embedding.android.FlutterActivity
 

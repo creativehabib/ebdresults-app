@@ -20,12 +20,21 @@ class _NotificationScreenState extends State<NotificationScreen> {
   @override
   void initState() {
     super.initState();
-    _loadNotifications();
+    _initData();
+  }
+
+  // ডাটা লোড এবং পঠিত হিসেবে মার্ক করার প্রাথমিক ফাংশন
+  Future<void> _initData() async {
+    await _loadNotifications();
+    await _markAsRead();
   }
 
   Future<void> _loadNotifications() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
+
     final data = await NotificationService.getNotifications();
+
     if (mounted) {
       setState(() {
         _notifications = data;
@@ -34,17 +43,19 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
   }
 
-  // নোটিফিকেশনে ক্লিক করলে নির্দিষ্ট পোস্টে নিয়ে যাওয়ার লজিক
+  // স্ক্রিনে ঢোকা মাত্রই সবগুলোকে পঠিত হিসেবে মার্ক করা
+  Future<void> _markAsRead() async {
+    await NotificationService.markAllAsRead();
+  }
+
   Future<void> _handleNotificationTap(NotificationModel item) async {
-    // যদি নোটিফিকেশনে postId না থাকে (সাধারণত OneSignal থেকে আসে)
     if (item.postId == null || item.postId!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('এই নোটিফিকেশনের জন্য কোনো পোস্ট খুঁজে পাওয়া যায়নি।')),
+        const SnackBar(content: Text('এই বিজ্ঞপ্তির জন্য কোনো বিস্তারিত তথ্য পাওয়া যায়নি।')),
       );
       return;
     }
 
-    // স্ক্রিনে একটি লোডার দেখানো
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -52,10 +63,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
 
     try {
-      // এপিআই থেকে জবের ডাটা নিয়ে আসা
       final response = await ApiService.fetchSingle('posts/${item.postId}');
 
-      if (mounted) Navigator.pop(context); // লোডার বন্ধ করা
+      if (mounted) Navigator.pop(context);
 
       if (response != null) {
         final job = JobModel.fromJson(response);
@@ -74,7 +84,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       }
     } catch (e) {
       if (mounted) Navigator.pop(context);
-      debugPrint("Error fetching notification post: $e");
+      debugPrint("Notification Redirection Error: $e");
     }
   }
 
@@ -88,7 +98,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('নোটিফিকেশনটি মুছে ফেলা হয়েছে'), duration: Duration(seconds: 1)),
+        const SnackBar(content: Text('মুছে ফেলা হয়েছে'), duration: Duration(seconds: 1)),
       );
     }
   }
@@ -114,23 +124,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
             IconButton(
               icon: const Icon(Icons.delete_sweep_outlined, color: Colors.redAccent),
               onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('সব মুছে ফেলুন?'),
-                    content: const Text('আপনি কি নিশ্চিত যে সব নোটিফিকেশন মুছে ফেলতে চান?'),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('না')),
-                      TextButton(
-                        onPressed: () {
-                          _clearAll();
-                          Navigator.pop(context);
-                        },
-                        child: const Text('হ্যাঁ', style: TextStyle(color: Colors.red)),
-                      ),
-                    ],
-                  ),
-                );
+                _showDeleteAllDialog();
               },
             ),
         ],
@@ -138,11 +132,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-        onRefresh: _loadNotifications,
+        onRefresh: _initData,
         child: _notifications.isEmpty
             ? _buildEmptyState(isDark)
             : ListView.builder(
           itemCount: _notifications.length,
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(vertical: 10),
           itemBuilder: (context, index) {
             final notification = _notifications[index];
@@ -160,6 +155,26 @@ class _NotificationScreenState extends State<NotificationScreen> {
             );
           },
         ),
+      ),
+    );
+  }
+
+  void _showDeleteAllDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('সব মুছে ফেলুন?'),
+        content: const Text('আপনি কি নিশ্চিত যে সব নোটিফিকেশন মুছে ফেলতে চান?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('না')),
+          TextButton(
+            onPressed: () {
+              _clearAll();
+              Navigator.pop(context);
+            },
+            child: const Text('হ্যাঁ', style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
   }
@@ -207,7 +222,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
             ),
           ],
         ),
-        onTap: () => _handleNotificationTap(item), // ক্লিক লজিক কানেক্ট করা হয়েছে
+        onTap: () => _handleNotificationTap(item),
       ),
     );
   }

@@ -5,19 +5,27 @@
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
 
-import 'package:flutter/material.dart';
+import 'package:ebdresults/core/theme/theme_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ebdresults/main.dart';
+import 'package:provider/provider.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    await tester.pumpWidget(const EbdresultsApp());
+  testWidgets('App load smoke test', (WidgetTester tester) async {
+    // ১. থিম প্রোভাইডার তৈরি করুন
+    final themeProvider = ThemeProvider();
 
-    if (find.text('0').evaluate().isNotEmpty) {
-      expect(find.text('0'), findsOneWidget);
-      await tester.tap(find.byIcon(Icons.add));
-      await tester.pump();
-      expect(find.text('1'), findsOneWidget);
-    }
+    // ২. EbdresultsApp-কে প্রোভাইডার দিয়ে র‍্যাপ করে পাম্প করুন
+    // যেহেতু আপনার মেইন অ্যাপে isFirstTime রিকোয়ার্ড, তাই এখানে একটি ভ্যালু পাস করতে হবে।
+    await tester.pumpWidget(
+      ChangeNotifierProvider<ThemeProvider>(
+        create: (_) => themeProvider,
+        child: const EbdresultsApp(isFirstTime: false),
+      ),
+    );
+
+    // ৩. অ্যাপ লোড হয়েছে কি না তা চেক করুন (উদাহরণস্বরূপ: লোগো বা নির্দিষ্ট টেক্সট)
+    // আপনার অ্যাপে যদি 'JOB NEWS' টেক্সটটি থাকে তবে সেটি চেক করবে
+    expect(find.textContaining('JOB'), findsWidgets);
   });
 }

@@ -35,7 +35,7 @@ class MoreScreen extends StatelessWidget {
             title: "Facebook Group",
             subtitle: "আমাদের কমিউনিটিতে যোগ দিন",
             color: const Color(0xff1877F2),
-            onTap: () => _launchUrl('https://facebook.com/groups/yourgroup'),
+            onTap: () => _launchUrl('https://facebook.com/groups/ebdresults'),
           ),
 
           _buildMoreItem(
@@ -44,7 +44,7 @@ class MoreScreen extends StatelessWidget {
             title: "YouTube Channel",
             subtitle: "চাকরির প্রস্তুতির ভিডিও টিউটোরিয়াল",
             color: const Color(0xffFF0000),
-            onTap: () => _launchUrl('https://youtube.com/yourchannel'),
+            onTap: () => _launchUrl('https://youtube.com/@ebdresultsofficial'),
           ),
 
           _buildMoreItem(

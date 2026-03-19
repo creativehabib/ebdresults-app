@@ -46,7 +46,7 @@ class JobModel {
       'name': title,
       'description': excerpt,
       'content': content,
-      'published_at': date,
+      'updated_at': date,
       'image_url': imageUrl,
       'slug': slug,
       'categories': categoriesData,
@@ -111,7 +111,7 @@ class JobModel {
       title: (json['name'] ?? json['title'] ?? '').toString(),
       excerpt: (json['description'] ?? json['excerpt'] ?? '').toString(),
       content: (json['content'] ?? '').toString(),
-      date: (json['published_at'] ?? json['date'] ?? '').toString(),
+      date: (json['updated_at'] ?? json['date'] ?? '').toString(),
       link: linkStr,
       imageUrl: extractImage(json), // আপডেট করা ফাংশনটি কল করা হলো
       slug: slugStr,

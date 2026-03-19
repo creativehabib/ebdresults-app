@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.ebdresults"
+    namespace = "com.ebdresults.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -22,7 +22,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.ebdresults"
+        applicationId = "com.ebdresults.app"
         minSdk = flutter.minSdkVersion // অথবা flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
